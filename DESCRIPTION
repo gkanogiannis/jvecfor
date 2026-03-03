@@ -1,0 +1,46 @@
+Package: jvecfor
+Type: Package
+Title: Fast K-Nearest Neighbor Search for Single-Cell Analysis
+Version: 0.99.0
+biocViews: SingleCell, GraphAndNetwork, Clustering, Classification
+Authors@R:
+    c(person(given = "Anestis",
+             family = "Gkanogiannis",
+             role = c("aut", "cre"),
+             email = "anestis@gkanogiannis.com",
+             comment = c(ORCID = "0000-0002-6441-0688"))
+    )
+Description: Drop-in replacement for BiocNeighbors::findKNN using the jvecfor
+    Java library, which builds on the jvector library to leverage the Java
+    Vector API for portable SIMD acceleration across AVX2, AVX-512, and ARM
+    NEON hardware. jvecfor/jvector implements HNSW-DiskANN approximate search
+    and VP-tree exact search. The package achieves approximately 2x speedup
+    over Annoy-based search at n >= 50K cells while returning output
+    structurally identical to BiocNeighbors, making it suitable for seamless
+    integration into existing Bioconductor single-cell workflows. Convenience
+    wrappers delegate shared nearest-neighbor (SNN) and k-nearest-neighbor
+    (KNN) graph construction to the bluster package.
+License: GPL-3
+Encoding: UTF-8
+Language: en-US
+LazyData: false
+Depends:
+    R (>= 4.5.0)
+Imports:
+    BiocParallel,
+    Matrix,
+    bluster,
+    data.table
+SystemRequirements: Java (>= 21)
+RoxygenNote: 7.3.3
+URL: https://github.com/gkanogiannis/jvecfor
+BugReports: https://github.com/gkanogiannis/jvecfor/issues
+Suggests:
+    BiocNeighbors,
+    BiocStyle,
+    igraph,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3

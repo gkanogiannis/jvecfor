@@ -1,0 +1,645 @@
+---
+title: "jvecfor: Fast K-Nearest Neighbor Search for Single-Cell Analysis"
+abstract: >
+  **jvecfor** provides fast k-nearest neighbor (KNN) and nearest-neighbor
+  graph construction for single-cell genomics. Powered by the **jvector** Java
+  library, it delivers HNSW-DiskANN approximate search and VP-tree exact search
+  with SIMD acceleration (AVX2/AVX-512), achieving approximately 2× speedup
+  over Annoy-based `BiocNeighbors::findKNN` at n ≥ 100K cells while maintaining
+  a fully compatible output format suitable for drop-in use in Bioconductor
+  workflows.
+author:
+  - name: Anestis Gkanogiannis
+    email: anestis@gkanogiannis.com
+date: "`r Sys.Date()`"
+package: jvecfor
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{jvecfor}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    collapse  = TRUE,
+    comment   = "#>"
+)
+# Guard all jvecfor calls: skip if Java or JAR is unavailable
+has_java <- nzchar(Sys.which("java"))
+has_jar  <- length(dir(system.file("java", package = "jvecfor"),
+                        pattern = "^jvecfor-.*\\.jar$")) > 0L
+run_eg   <- has_java && has_jar
+```
+
+# Introduction
+
+**jvecfor** is a high-performance KNN library for Bioconductor single-cell
+workflows. It wraps a Java library, built on top of
+[jvector](https://github.com/jbellis/jvector), which implements two algorithms:
+
+- **HNSW-DiskANN** (`type = "ann"`) -- approximate KNN via Hierarchical
+    Navigable Small World graphs, with SIMD-accelerated distance computation
+    (AVX2/AVX-512). O(log n) query time; ~2× faster than
+    `r Biocpkg("BiocNeighbors")` at n ≥ 100K cells.
+- **VP-tree** (`type = "knn"`) — exact KNN using vantage-point trees.
+    Deterministic; ideal for small datasets or ground-truth validation.
+
+The R package communicates with the JVM via `system2()` — no JNI, no
+`r CRANpkg("rJava")` dependency. The JAR is bundled in `inst/java/` and
+requires no separate installation step beyond having Java 21+ on your `PATH`.
+
+## Function overview
+
+| Function | Description | Returns |
+|---|---|---|
+| `fastFindKNN()` | Core KNN search | `list($index, $distance)` |
+| `fastMakeSNNGraph()` | KNN → shared nearest-neighbor graph | `igraph` object |
+| `fastMakeKNNGraph()` | KNN → k-nearest-neighbor graph | `igraph` object |
+| `jvecfor_setup()` | Copy a custom JAR into the package | path (invisibly) |
+
+The output of `fastFindKNN()` is a named list with `$index` (n × k integer
+matrix, 1-based) and `$distance` (n × k numeric matrix), identical in
+structure to `BiocNeighbors::findKNN()`.
+
+# Prerequisites and Setup
+
+## Java version
+
+jvecfor requires **Java ≥ 21** on `PATH`. The JAR uses the
+`jdk.incubator.vector` module for SIMD acceleration. Check your installation:
+
+```{r check-java, eval=FALSE}
+system2("java", "--version")  # should print openjdk 21 or higher
+```
+
+If `java` is not found, install [Eclipse Temurin](https://adoptium.net) or
+any OpenJDK 21+ distribution and ensure the `java` binary is on your `PATH`.
+
+## Package options
+
+Two global options control runtime behaviour:
+
+```{r options-table, echo=FALSE}
+opts <- data.frame(
+    Option           = c("`jvecfor.verbose`", "`jvecfor.jar`"),
+    Default          = c("`FALSE`", "`NULL`"),
+    Effect           = c(
+        "Pass `--verbose` to jvecfor, printing HNSW build progress to stderr.",
+        "Use a custom JAR instead of the one bundled in `inst/java/`."
+    ),
+    stringsAsFactors = FALSE
+)
+knitr::kable(opts)
+```
+
+Set them persistently in your `.Rprofile` or per-session:
+
+```{r options-example, eval=FALSE}
+options(jvecfor.verbose = TRUE)                        # global verbose mode
+options(jvecfor.jar = "/path/to/custom/jvecfor.jar")   # custom JAR
+```
+
+## Custom JAR setup
+
+The bundled JAR is installed automatically. If you have compiled a custom
+jvecfor build:
+
+```{r setup-jar, eval=FALSE}
+# Auto-finds target/jvecfor-*.jar relative to the working directory
+jvecfor_setup()
+
+# Or provide the path explicitly
+jvecfor_setup(jar_path = "/path/to/jvecfor-x.y.z.jar")
+```
+
+# Quick Start
+
+```{r quick-start, eval=run_eg}
+library(jvecfor)
+
+# Simulate 300 cells × 30 principal components
+set.seed(42)
+pca <- matrix(rnorm(300 * 30), nrow = 300, ncol = 30)
+
+# Find 15 nearest neighbours (HNSW-DiskANN approximate, Euclidean)
+nn <- fastFindKNN(pca, k = 15)
+
+str(nn)
+```
+
+The result is a two-element list. `$index` is a 300 × 15 integer matrix of
+1-based neighbor indices; `$distance` is a 300 × 15 numeric matrix of
+Euclidean distances.
+
+# Core Function: `fastFindKNN()`
+
+## Output structure
+
+```{r output-structure, eval=run_eg}
+dim(nn$index)     # 300 x 15
+dim(nn$distance)  # 300 x 15
+
+class(nn$index)     # "integer" — 1-based, same as BiocNeighbors
+class(nn$distance)  # "numeric"
+
+# No zeros in index (1-based) and all values within [1, nrow(pca)]
+range(nn$index)
+```
+
+This output is structurally identical to `BiocNeighbors::findKNN()`, so
+existing code that passes `nn$index` to `r Biocpkg("bluster")` or other
+Bioconductor tools works without modification.
+
+## Algorithm choice: ANN vs. exact
+
+```{r ann-vs-knn, eval=run_eg}
+# Approximate (HNSW-DiskANN) — default, fast, O(log n) query
+nn_ann <- fastFindKNN(pca, k = 15, type = "ann")
+
+# Exact (VP-tree) — deterministic, O(n log n) query
+nn_knn <- fastFindKNN(pca, k = 15, type = "knn")
+
+# Self-consistency check: exact search always returns itself as nearest
+# (excluding self) — no duplicate indices per row
+stopifnot(all(apply(nn_knn$index, 1, function(x) !anyDuplicated(x))))
+```
+
+**When to choose ANN vs. exact:**
+
+| Criterion | ANN (`"ann"`) | Exact (`"knn"`) |
+|---|---|---|
+| Dataset size | n ≥ 5K | n < 5K, or benchmark ground truth |
+| Recall | ~95–99 % (tunable) | 100 % |
+| Speed | O(log n) | O(n log n) |
+| Metrics | euclidean, cosine, dot_product | euclidean, cosine |
+| Reproducibility | Deterministic (fixed graph) | Deterministic |
+
+## Distance metrics
+
+### Euclidean (default)
+
+The L2 distance in PC space. Appropriate when principal components have been
+whitened (equal variance per component) or when the embedding preserves
+meaningful inter-cell distances.
+
+```{r metric-euclidean, eval=run_eg}
+nn_euc <- fastFindKNN(pca, k = 15, metric = "euclidean")
+```
+
+### Cosine
+
+Measures the angle between cell vectors; ignores magnitude. This is useful
+when only the direction of the embedding vector matters, for instance with
+log-normalised count embeddings where library-size effects inflate norms.
+Normalise rows to unit length before calling to ensure consistent behaviour:
+
+```{r metric-cosine, eval=run_eg}
+# L2-normalise rows
+norms    <- sqrt(rowSums(pca^2))
+pca_norm <- sweep(pca, 1, norms, "/")
+
+nn_cos <- fastFindKNN(pca_norm, k = 15, metric = "cosine")
+```
+
+### Dot-product (ANN only)
+
+The inner product ⟨u, v⟩. A similarity measure (higher = more similar) rather
+than a distance. Only valid for `type = "ann"` — the VP-tree requires a proper
+metric. Attempting to combine `metric = "dot_product"` with `type = "knn"`
+raises an informative error:
+
+```{r metric-dotproduct, eval=run_eg}
+# ANN with dot-product similarity
+nn_dot <- fastFindKNN(pca_norm, k = 15, metric = "dot_product", type = "ann")
+
+# Attempting exact + dot_product raises an error
+tryCatch(
+    fastFindKNN(pca, k = 15, metric = "dot_product", type = "knn"),
+    error = function(e) conditionMessage(e)
+)
+```
+
+## Skipping distance computation
+
+When you only need neighbor indices (e.g. for graph construction), set
+`get.distance = FALSE`. This avoids allocating and transmitting the n × k
+distance matrix, saving roughly 50 % of output parsing time:
+
+```{r no-distance, eval=run_eg}
+nn_idx <- fastFindKNN(pca, k = 15, get.distance = FALSE)
+is.null(nn_idx$distance)   # TRUE
+```
+
+The `fastMakeSNNGraph()` and `fastMakeKNNGraph()` wrappers set
+`get.distance = FALSE` internally.
+
+# HNSW-DiskANN Tuning
+
+## Parameter reference
+
+```{r hnsw-params-table, echo=FALSE}
+hnsw_tbl <- data.frame(
+    "Parameter" = c(
+        "`M`", "`ef.search`",
+        "`oversample.factor`", "`pq.subspaces`"
+    ),
+    "Default" = c("16", "0 (auto)", "1.0", "0 (off)"),
+    "Tuning guidance" = c(
+        paste(
+            "Connections per node. Increase to 32-64",
+            "for high-dimensional (>50 dims) data;",
+            "doubles memory and build time."
+        ),
+        paste(
+            "Beam width. Auto = max(k+1, 3k).",
+            "Increase (e.g. 100-500) to trade speed for recall."
+        ),
+        paste(
+            "Fetch ceil(ef x factor) candidates, keep top k.",
+            "Values 1.5-3.0 improve recall with proportional cost."
+        ),
+        paste(
+            "PQ subspaces. See section 5.3.",
+            "4-8x speedup with minimal recall loss."
+        )
+    ),
+    check.names      = FALSE,
+    stringsAsFactors = FALSE
+)
+knitr::kable(hnsw_tbl)
+```
+
+## High-recall configuration
+
+Use this when recall quality matters more than raw speed — for example when
+producing the KNN graph that will underpin a publication's cluster assignments
+or trajectory analysis:
+
+```{r high-recall, eval=run_eg}
+nn_highrecall <- fastFindKNN(
+    pca, k = 15,
+    M                 = 32L,
+    ef.search         = 150L,
+    oversample.factor = 2.0
+)
+dim(nn_highrecall$index)
+```
+
+## Product Quantization (pq.subspaces)
+
+Product Quantization (PQ) compresses vectors into compact codes before
+distance computation, yielding a 4–8× search speedup with negligible recall
+loss. Set `pq.subspaces` to `ncol(X) / 2` as a starting point; the value
+must evenly divide `ncol(X)`.
+
+```{r pq-demo, eval=run_eg}
+# 300 × 20 matrix — use 10 PQ subspaces (= 20 / 2)
+set.seed(1)
+pca20 <- matrix(rnorm(300 * 20), 300, 20)
+
+nn_default <- fastFindKNN(pca20, k = 15)                      # no PQ
+nn_pq      <- fastFindKNN(pca20, k = 15, pq.subspaces = 10L)  # PQ enabled
+
+# Recall overlap (fraction of PQ neighbors that match the default)
+shared <- mapply(function(a, b) length(intersect(a, b)),
+                    split(nn_default$index, row(nn_default$index)),
+                    split(nn_pq$index,      row(nn_pq$index)))
+message(sprintf("Mean PQ recall vs. default: %.1f%%", 100 * mean(shared / 15)))
+```
+
+For small matrices (< 1K rows) the JVM startup cost dominates and PQ will
+not show a wall-clock benefit. The speedup becomes material at n ≥ 10K.
+
+> **Avoid PQ when** `ncol(X)` is very small (< 8 features): quantisation
+> error dominates and recall drops sharply.
+
+A timing comparison for large data:
+
+```{r pq-timing, eval=FALSE}
+# Illustrative — run on your own large matrix
+nn_default_time <- system.time(fastFindKNN(large_pca, k = 15))
+nn_pq_time <- system.time(
+    fastFindKNN(large_pca, k = 15,
+                pq.subspaces = ncol(large_pca) %/% 2L)
+)
+nn_default_time["elapsed"] / nn_pq_time["elapsed"]  # expect 4–8×
+```
+
+## Thread management
+
+jvecfor auto-detects the number of physical cores and uses
+`max(1, physical_cores − 1)` threads by default. Override with
+`num.threads`:
+
+```{r threads, eval=run_eg}
+# Single-threaded (reproducible, good for shared HPC nodes)
+nn_1t <- fastFindKNN(pca, k = 15, num.threads = 1L)
+
+# Explicit thread count
+nn_4t <- fastFindKNN(pca, k = 15, num.threads = 4L)
+
+# Use verbose to confirm the thread count jvecfor actually uses
+nn_v <- fastFindKNN(pca, k = 15, num.threads = 2L, verbose = TRUE)
+```
+
+On shared HPC nodes, set `num.threads` explicitly to avoid consuming all
+physical cores and interfering with co-located jobs.
+
+# Graph Construction
+
+The `fastMakeSNNGraph()` and `fastMakeKNNGraph()` wrappers build
+`r CRANpkg("igraph")` objects directly from the PC matrix, combining
+`fastFindKNN()` with `r Biocpkg("bluster")`'s graph constructors.
+
+## Shared Nearest-Neighbor graph
+
+```{r snn-graph, eval=run_eg}
+library(igraph)
+
+g_snn <- fastMakeSNNGraph(pca, k = 15)
+class(g_snn)
+igraph::vcount(g_snn)   # 300 — one vertex per cell
+igraph::ecount(g_snn)   # weighted undirected edges
+```
+
+The `snn.type` argument controls how edge weights are computed:
+
+```{r snn-type-table, echo=FALSE}
+snn_tbl <- data.frame(
+    "snn.type" = c(
+        '`"rank"` (default)', '`"jaccard"`', '`"number"`'
+    ),
+    "Edge weight" = c(
+        "Rank-based Jaccard similarity",
+        "Jaccard similarity",
+        "Count of shared neighbors"
+    ),
+    "Use case" = c(
+        "Seurat-compatible; robust to hub nodes",
+        "Standard set-overlap measure",
+        "Simple; unnormalised"
+    ),
+    check.names      = FALSE,
+    stringsAsFactors = FALSE
+)
+knitr::kable(snn_tbl)
+```
+
+```{r snn-types, eval=run_eg}
+g_rank    <- fastMakeSNNGraph(pca, k = 15, snn.type = "rank")
+g_jaccard <- fastMakeSNNGraph(pca, k = 15, snn.type = "jaccard")
+g_number  <- fastMakeSNNGraph(pca, k = 15, snn.type = "number")
+
+# Edge weight ranges differ between types
+summary(igraph::E(g_rank)$weight)
+summary(igraph::E(g_jaccard)$weight)
+```
+
+## K-Nearest Neighbor graph
+
+```{r knn-graph, eval=run_eg}
+# Undirected KNN graph (mutual edges)
+g_knn_u <- fastMakeKNNGraph(pca, k = 15, directed = FALSE)
+
+# Directed KNN graph (each cell points to its k neighbors)
+g_knn_d <- fastMakeKNNGraph(pca, k = 15, directed = TRUE)
+
+igraph::is_directed(g_knn_d)  # TRUE
+```
+
+## Community detection
+
+The SNN graph is the standard input for graph-based clustering in single-cell
+analysis. Here we use the Louvain algorithm:
+
+```{r louvain, eval=run_eg}
+louvain <- igraph::cluster_louvain(g_snn)
+message(
+    "Number of detected communities: ",
+    length(igraph::communities(louvain))
+)
+membership_vec <- igraph::membership(louvain)
+table(membership_vec)
+```
+
+Leiden clustering (when available via `r CRANpkg("igraph")` ≥ 1.3) gives
+finer control over community resolution:
+
+```{r leiden, eval=FALSE}
+leiden <- igraph::cluster_leiden(g_snn, resolution_parameter = 0.5)
+table(igraph::membership(leiden))
+```
+
+# Full Single-Cell Workflow
+
+This end-to-end example simulates three cell populations (clusters) embedded
+in 30 PCs and recovers them via SNN graph clustering. All steps use only
+**jvecfor** and `r CRANpkg("igraph")`.
+
+```{r workflow-simulate, eval=run_eg}
+# Simulate 300 cells (100 per cluster) with separable cluster centres in PC1–PC2
+set.seed(42)
+n_per <- 100
+centres <- list(c(5, 0), c(-5, 0), c(0, 5))
+
+pca_clust <- do.call(rbind, lapply(seq_along(centres), function(i) {
+    m        <- matrix(rnorm(n_per * 30), n_per, 30)
+    m[, 1]   <- m[, 1] + centres[[i]][1]
+    m[, 2]   <- m[, 2] + centres[[i]][2]
+    m
+}))
+true_labels <- rep(1:3, each = n_per)
+```
+
+```{r workflow-knn, eval=run_eg}
+# Step 1: find 15 nearest neighbours
+nn_wf <- fastFindKNN(pca_clust, k = 15)
+```
+
+```{r workflow-graph, eval=run_eg}
+# Step 2: build SNN graph
+g_wf <- fastMakeSNNGraph(pca_clust, k = 15)
+```
+
+```{r workflow-cluster, eval=run_eg}
+# Step 3: Louvain community detection
+lou_wf   <- igraph::cluster_louvain(g_wf)
+detected <- igraph::membership(lou_wf)
+
+# Step 4: cross-tabulate detected vs. true labels
+print(table(Detected = detected, True = true_labels))
+```
+
+```{r workflow-plot-cap, include=FALSE, eval=run_eg}
+wf_cap <- paste(
+    "Louvain clusters (colours) in PC1-PC2 space.",
+    "Three well-separated populations are recovered."
+)
+```
+
+```{r workflow-plot, eval=run_eg, fig.width=5, fig.height=5, fig.cap=wf_cap}
+# Visualise in the first two PCs (base R — no extra dependencies)
+cluster_cols <- c("#E64B35", "#4DBBD5", "#00A087", "#3C5488", "#F39B7F")
+plot(
+    pca_clust[, 1], pca_clust[, 2],
+    col  = cluster_cols[detected],
+    pch  = 19, cex = 0.7,
+    xlab = "PC 1", ylab = "PC 2",
+    main = "Louvain clusters on SNN graph"
+)
+legend("topright",
+        legend = paste("Cluster", sort(unique(detected))),
+        col    = cluster_cols[sort(unique(detected))],
+        pch    = 19, bty = "n", cex = 0.85)
+```
+
+### Using a real SingleCellExperiment
+
+Swap the simulated matrix for `reducedDim(sce, "PCA")` to apply the same
+pipeline to real data:
+
+```{r sce-workflow, eval=FALSE}
+library(SingleCellExperiment)
+
+# Assume sce is a SingleCellExperiment with PCA computed
+# (e.g. via scater::runPCA)
+pca_mat <- reducedDim(sce, "PCA")
+
+# KNN search
+nn_sce <- fastFindKNN(pca_mat, k = 15)
+
+# Graph-based clustering
+g_sce      <- fastMakeSNNGraph(pca_mat, k = 15)
+lou_sce    <- igraph::cluster_louvain(g_sce)
+sce$cluster <- as.factor(igraph::membership(lou_sce))
+```
+
+# Comparing with BiocNeighbors
+
+jvecfor is designed as a drop-in replacement for
+`r Biocpkg("BiocNeighbors")`. The two calls below are functionally
+equivalent and return identically structured output:
+
+```{r biocneighbors-compare, eval=FALSE}
+library(BiocNeighbors)
+
+# BiocNeighbors (Annoy backend, the default ANN method)
+nn_bn <- BiocNeighbors::findKNN(pca, k = 15, BNPARAM = AnnoyParam())
+
+# jvecfor (HNSW-DiskANN backend)
+nn_jv <- jvecfor::findKNN(pca, k = 15)
+
+# Same structure
+identical(names(nn_bn), names(nn_jv))   # TRUE — both have $index, $distance
+identical(dim(nn_bn$index), dim(nn_jv$index))  # TRUE
+```
+
+Results will not be identical because both methods are approximate — they
+use different ANN algorithms with different recall characteristics.
+
+## Timing comparison
+
+To benchmark on your own data:
+
+```{r timing-compare, eval=FALSE}
+# Replace `pca_large` with your n × p matrix (e.g. n = 100K cells, p = 50 PCs)
+t_bn <- system.time(
+    BiocNeighbors::findKNN(pca_large, k = 15, BNPARAM = AnnoyParam())
+)
+t_jv <- system.time(
+    fastFindKNN(pca_large, k = 15)
+)
+
+message(sprintf("BiocNeighbors: %.1f s", t_bn["elapsed"]))
+message(sprintf("jvecfor:       %.1f s", t_jv["elapsed"]))
+message(sprintf("Speedup:       %.1fx",  t_bn["elapsed"] / t_jv["elapsed"]))
+```
+
+# Troubleshooting
+
+## Common errors
+
+```{r errors-table, echo=FALSE}
+err_tbl <- data.frame(
+    "Error message" = c(
+        "`Java not found on PATH`",
+        "`Java >= 21 is required (found Java X)`",
+        paste("`jvecfor JAR not found.",
+                "Run jvecfor_setup()`"),
+        "`jvecfor exited with status N`",
+        "Very slow first call",
+        "Unexpected neighbour count"
+    ),
+    "Likely cause" = c(
+        "`java` not in shell `PATH`",
+        "Outdated JDK",
+        "`inst/java/` empty",
+        "JVM crash or invalid input",
+        "JVM cold-start overhead",
+        "`k >= nrow(X)`"
+    ),
+    "Resolution" = c(
+        paste("Install OpenJDK 21+ (adoptium.net);",
+                "re-launch R after updating PATH."),
+        paste("Upgrade to OpenJDK 21+;",
+                "verify with `java --version`."),
+        "Run `jvecfor_setup()` or reinstall.",
+        "Set `verbose=TRUE` to inspect Java stderr.",
+        "Expected; subsequent calls are faster.",
+        paste("Reduce `k`; need at least",
+                "`k + 1` observations.")
+    ),
+    check.names      = FALSE,
+    stringsAsFactors = FALSE
+)
+knitr::kable(err_tbl)
+```
+
+## Debugging with verbose mode
+
+Enable verbose output to see HNSW build progress and confirm threading:
+
+```{r verbose-debug, eval=run_eg}
+options(jvecfor.verbose = TRUE)
+nn_debug <- fastFindKNN(pca[1:50, ], k = 5)
+options(jvecfor.verbose = FALSE)   # reset
+```
+
+## Checking the Java runtime
+
+```{r java-check, eval=FALSE}
+# Which java is on PATH?
+Sys.which("java")
+
+# Version reported by that java binary
+system2("java", "--version", stderr = TRUE)
+
+# Where is the bundled JAR?
+system.file("java", package = "jvecfor")
+```
+
+## Using a safe wrapper
+
+For production code that should degrade gracefully when Java is unavailable,
+wrap calls with `tryCatch`:
+
+```{r tryCatch-example, eval=FALSE}
+nn <- tryCatch(
+    fastFindKNN(pca, k = 15),
+        error = function(e) {
+            warning("jvecfor unavailable: ", conditionMessage(e),
+                "\nFalling back to BiocNeighbors.")
+            BiocNeighbors::findKNN(pca, k = 15)
+        }
+)
+```
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```

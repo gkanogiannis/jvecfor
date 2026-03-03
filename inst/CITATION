@@ -1,0 +1,11 @@
+citHeader("To cite jvecfor in publications use:")
+
+bibentry(
+  bibtype  = "Manual",
+  title    = "jvecfor: Fast K-Nearest Neighbor Search for Single-Cell Analysis",
+  author   = person("Anestis", "Gkanogiannis",
+                    comment = c(ORCID = "0000-0002-6441-0688")),
+  year     = "2026",
+  doi      = "10.5281/zenodo.XXXXXXX",
+  url      = "https://github.com/gkanogiannis/jvecfor"
+)

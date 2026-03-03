@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background: dark rounded square -->
+  <rect width="512" height="512" rx="64" fill="#1a1a2e"/>
+
+  <!-- Graph edges: satellite → center -->
+  <line x1="256" y1="220" x2="130" y2="130" stroke="#276DC3" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <line x1="256" y1="220" x2="382" y2="130" stroke="#276DC3" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <line x1="256" y1="220" x2="108" y2="278" stroke="#276DC3" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <line x1="256" y1="220" x2="404" y2="278" stroke="#276DC3" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+  <line x1="256" y1="220" x2="256" y2="90"  stroke="#276DC3" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Cross-edges between satellite nodes (sparse, realistic) -->
+  <line x1="130" y1="130" x2="256" y2="90"  stroke="#276DC3" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+  <line x1="382" y1="130" x2="256" y2="90"  stroke="#276DC3" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+  <line x1="108" y1="278" x2="130" y2="130" stroke="#276DC3" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+  <line x1="404" y1="278" x2="382" y2="130" stroke="#276DC3" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Satellite nodes -->
+  <circle cx="130" cy="130" r="30" fill="#276DC3" opacity="0.75"/>
+  <circle cx="382" cy="130" r="30" fill="#276DC3" opacity="0.75"/>
+  <circle cx="108" cy="278" r="30" fill="#276DC3" opacity="0.75"/>
+  <circle cx="404" cy="278" r="30" fill="#276DC3" opacity="0.75"/>
+  <circle cx="256" cy="90"  r="30" fill="#276DC3" opacity="0.75"/>
+
+  <!-- Central node -->
+  <circle cx="256" cy="220" r="62" fill="#276DC3"/>
+  <!-- Bold "R" in the centre -->
+  <text x="256" y="244" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="76" font-weight="bold" fill="#ffffff">R</text>
+
+  <!-- Package name -->
+  <text x="256" y="384" text-anchor="middle"
+        font-family="'Courier New', Courier, monospace"
+        font-size="58" font-weight="bold" letter-spacing="3"
+        fill="#ffffff">jvecfor</text>
+
+  <!-- Subtitle -->
+  <text x="256" y="448" text-anchor="middle"
+        font-family="'Helvetica Neue', Arial, sans-serif"
+        font-size="24" fill="#6b7280" letter-spacing="1">jvector · for R</text>
+</svg>
