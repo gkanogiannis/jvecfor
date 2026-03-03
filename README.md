@@ -43,9 +43,9 @@ for fast KNN search and graph construction, delegating heavy computation to the 
 ## Requirements
 
 - R ≥ 4.5.0
-- Java ≥ 21 (tested on Java 25) — must be on `PATH`
+- Java ≥ 25 — must be on `PATH`
 - Bioconductor packages: `bluster`, `BiocNeighbors` (suggested)
-- Maven 3.8+ (to build the Java backend from source)
+- Maven 3.9+ (to build the Java backend from source)
 
 ---
 

@@ -35,7 +35,7 @@
 #' set.seed(42)
 #' X <- matrix(rnorm(5000), nrow = 100, ncol = 50)
 #'
-#' # Full examples require Java >= 21 on PATH
+#' # Full examples require Java >= 25 on PATH
 #' g <- fastMakeSNNGraph(X, k = 10)
 #' igraph::vcount(g)  # 100
 #'
@@ -113,7 +113,7 @@ fastMakeSNNGraph <- function(
 #' set.seed(42)
 #' X <- matrix(rnorm(5000), nrow = 100, ncol = 50)
 #'
-#' # Full examples require Java >= 21 on PATH
+#' # Full examples require Java >= 25 on PATH
 #' g <- fastMakeKNNGraph(X, k = 10)
 #' igraph::vcount(g)  # 100
 #'

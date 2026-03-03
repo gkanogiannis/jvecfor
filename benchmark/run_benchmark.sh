@@ -3,8 +3,8 @@
 #  Run the jvecfor vs bluster makeSNNGraph benchmark.
 #
 #  Prerequisites:
-#    • Java 21+ on PATH
-#    • Maven 3.8+ on PATH (or set SKIP_BUILD=1 if jar is already built)
+#    • Java 25+ on PATH
+#    • Maven 3.9+ on PATH (or set SKIP_BUILD=1 if jar is already built)
 #    • R 4.5+ on PATH with internet access (packages auto-installed)
 #
 #  Usage:

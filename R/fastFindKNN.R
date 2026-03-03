@@ -182,7 +182,7 @@
 #' set.seed(42)
 #' X <- matrix(rnorm(200), nrow = 20, ncol = 10)
 #'
-#' # Full examples require Java >= 21 on PATH
+#' # Full examples require Java >= 25 on PATH
 #' nn <- fastFindKNN(X, k = 3)
 #' dim(nn$index)    # 20 x 3
 #' dim(nn$distance) # 20 x 3
