@@ -197,13 +197,13 @@ bash run_benchmark.sh
 
 ## Citation
 
-If you use `fastreeR` in your research, please cite:
+If you use `jvecfor` in your research, please cite:
 
-> Anestis Gkanogiannis (2016)
-> _A scalable assembly-free variable selection algorithm for biomarker discovery from metagenomes_  
-> _BMC Bioinformatics_ 17, 311.  
-> <https://doi.org/10.1186/s12859-016-1186-3>  
-> <https://github.com/gkanogiannis/fastreeR>
+> Anestis Gkanogiannis (2026)
+> _Fast K-Nearest Neighbor Search for Single-Cell Analysis_  
+> _Zenodo_  
+> <https://doi.org/>  
+> <https://github.com/gkanogiannis/jvecfor>
 
 ---
 
