@@ -29,6 +29,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Build jvecfor JAR
+        if: runner.os != 'Windows'
         run: make install
 
       - name: Setup R and Bioconductor
@@ -88,79 +89,13 @@ jobs:
           path: |
             ${{ steps.build-install-check.outputs.install-log }}
 
-  pkg-in-subfolder:
-    name: Subfolder Pkg - Bioc ${{ matrix.bioc-version }} (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04]
-        bioc-version: [release]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-
-      - uses: actions/checkout@v4
-
-      ## We only using Ubuntu and BioC-release here,
-      ## so lets use the Rstudio package manager
-      ## to install binary linux packages
-      - name: Setup R and Bioconductor
-        uses: grimbough/bioc-actions/setup-bioc@devel
-        with:
-          bioc-version: ${{ matrix.bioc-version }}
-          bioc-mirror: https://packagemanager.rstudio.com/bioconductor
-
-      - name: Install dependencies
-        uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          cache-version: 2
-          working-directory: 'inst/nestedPKG'
-      #
-      # - name: Install dependencies
-      #   run: |
-      #       BiocManager::install(c('knitr', 'rmarkdown'))
-      #   shell: Rscript {0}
-
-      ## Run the complete build, install, check process like the Bioc Build System
-      - name: Build, Install, Check
-        id: build-install-check
-        uses: grimbough/bioc-actions/build-install-check@devel
-        with:
-          package-directory: 'inst/nestedPKG'
-
-      ## Run all tests in BiocCheck, include those we know fail
-      ## Use the 'error-on' to prevent this failing the workflow
-      - name: Run BiocCheck without arguments
-        uses: grimbough/bioc-actions/run-BiocCheck@devel
-        with:
-          package-directory: 'inst/nestedPKG'
-          error-on: 'never'
-
-      ## upload the Rcheck folder if the workflow fails
-      - name: Upload output
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: ${{ matrix.os }}-bioc-${{ matrix.bioc-version}}-sub_folder
-          path: |
-            ${{ steps.build-install-check.outputs.check-dir }}
-
-      - name: Upload install log if that step fails
-        if: always() && (steps.build-install-check.outcome == 'failure')
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.os }}-bioc-${{ matrix.bioc-version}}-sub_folder-install_log
-          path: |
-            ${{ steps.build-install-check.outputs.install-log }}
-
   using-bioc-docker:
     name: Docker Devel
     strategy:
       fail-fast: false
       matrix:
         ## Test using both Bioconductor devel and release
-        bioc-version: [devel, RELEASE_3_20]
+        bioc-version: [devel, RELEASE_3_22]
 
     runs-on: ubuntu-22.04
     container: bioconductor/bioconductor_docker:${{ matrix.bioc-version }}
