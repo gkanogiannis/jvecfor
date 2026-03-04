@@ -5,7 +5,7 @@
 </p>
 
 <!-- badges: start -->
-[![Bioc history](https://bioconductor.org/shields/years-in-bioc/jvecfor.svg)](https://bioconductor.org/packages/release/bioc/html/jvecfor.html#since)[![Bioc downloads rank](https://bioconductor.org/shields/downloads/release/jvecfor.svg)](http://bioconductor.org/packages/stats/bioc/jvecfor/)
+[![Bioc history](https://bioconductor.org/shields/years-in-bioc/jvecfor.svg)](https://bioconductor.org/packages/release/bioc/html/jvecfor.html#since)[![Bioc downloads rank](https://bioconductor.org/shields/downloads/release/jvecfor.svg)](http://bioconductor.org/packages/stats/bioc/jvecfor/) [![DOI](https://zenodo.org/badge/1172047610.svg)](https://doi.org/10.5281/zenodo.18856296)
 <!-- badges: end -->
 
 > **jvecfor** — a fast R/Bioconductor package for k-nearest-neighbor (KNN) and
@@ -202,7 +202,7 @@ If you use `jvecfor` in your research, please cite:
 > Anestis Gkanogiannis (2026)
 > _Fast K-Nearest Neighbor Search for Single-Cell Analysis_  
 > _Zenodo_  
-> <https://doi.org/>  
+> <https://doi.org/10.5281/zenodo.18856296>  
 > <https://github.com/gkanogiannis/jvecfor>
 
 ---
