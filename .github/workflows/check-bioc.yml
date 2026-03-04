@@ -1,33 +1,26 @@
-name: R CMD check + BiocCheck
+name: Comprehensive R CMD check + BiocCheck tests of the devel tag actions
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
+env:
+  GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  R-CMD-check:
-    runs-on: ${{ matrix.config.os }}
-
-    name: ${{ matrix.config.os }} (R ${{ matrix.config.r }}, BioC ${{ matrix.config.bioc }})
-
+  pkg-at-root:
+    name: Root Pkg - Bioc ${{ matrix.bioc-version }} (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {os: ubuntu-latest,  r: 'devel',   bioc: 'devel'}
-          - {os: ubuntu-latest,  r: 'release', bioc: 'release'}
-          - {os: macOS-latest,   r: 'release', bioc: 'release'}
-          - {os: windows-latest, r: 'release', bioc: 'release'}
+        os: [ubuntu-22.04, ubuntu-24.04, windows-2022, windows-2025, macos-14, macos-15]
+        ## Test using both Bioconductor devel and release
+        bioc-version: [devel, release]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 25
         uses: actions/setup-java@v4
@@ -38,36 +31,189 @@ jobs:
       - name: Build jvecfor JAR
         run: make install
 
-      - name: Set up R
-        uses: r-lib/actions/setup-r@v2
+      - name: Setup R and Bioconductor
+        uses: grimbough/bioc-actions/setup-bioc@devel
         with:
-          r-version: ${{ matrix.config.r }}
+          bioc-version: ${{ matrix.bioc-version }}
+          bioc-mirror: https://ftp.gwdg.de/pub/misc/bioconductor
           use-public-rspm: true
 
-      - name: Set up Bioconductor
-        uses: r-lib/actions/setup-bioc@v2
-        with:
-          bioc-version: ${{ matrix.config.bioc }}
+      - name: Install pandoc
+        uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Install R dependencies
+      - name: Install dependencies
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: |
-            bioc::BiocCheck
-            any::rcmdcheck
-          needs: check
+          cache-version: 1
 
-      - name: Run R CMD check
-        uses: r-lib/actions/check-r-package@v2
+      - name: Build, Install, Check
+        id: build-install-check
+        uses: grimbough/bioc-actions/build-install-check@devel
         with:
-          error-on: '"error"'
-          args: 'c("--no-manual", "--as-cran")'
+          package-directory: '.'
 
-      - name: Run BiocCheck
+      ## Turn off the checks that we know will fail
+      ## Cause the workflow to error if any new errors appear
+      - name: Run BiocCheck with arguments
+        uses: grimbough/bioc-actions/run-BiocCheck@devel
+        with:
+          package-directory: '.'
+          arguments: '--no-check-bioc-views --no-check-vignettes --no-check-bioc-help'
+          error-on: 'error'
+
+      ## upload the Rcheck folder regardless of success of failure
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.os }}-bioc-${{ matrix.bioc-version}}-Rcheck
+          path: |
+            ${{ steps.build-install-check.outputs.check-dir }}
+
+      ## upload source and binary packages
+      - name: Upload check output
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-bioc-${{ matrix.bioc-version}}-pkgs
+          path: |
+            ${{ steps.build-install-check.outputs.source-tarball }}
+            ${{ steps.build-install-check.outputs.package-binary }}
+
+
+      - name: Upload install log if that step fails
+        if: always() && (steps.build-install-check.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-bioc-${{ matrix.bioc-version}}-install_log
+          path: |
+            ${{ steps.build-install-check.outputs.install-log }}
+
+  pkg-in-subfolder:
+    name: Subfolder Pkg - Bioc ${{ matrix.bioc-version }} (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        bioc-version: [release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      ## We only using Ubuntu and BioC-release here,
+      ## so lets use the Rstudio package manager
+      ## to install binary linux packages
+      - name: Setup R and Bioconductor
+        uses: grimbough/bioc-actions/setup-bioc@devel
+        with:
+          bioc-version: ${{ matrix.bioc-version }}
+          bioc-mirror: https://packagemanager.rstudio.com/bioconductor
+
+      - name: Install dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          cache-version: 2
+          working-directory: 'inst/nestedPKG'
+      #
+      # - name: Install dependencies
+      #   run: |
+      #       BiocManager::install(c('knitr', 'rmarkdown'))
+      #   shell: Rscript {0}
+
+      ## Run the complete build, install, check process like the Bioc Build System
+      - name: Build, Install, Check
+        id: build-install-check
+        uses: grimbough/bioc-actions/build-install-check@devel
+        with:
+          package-directory: 'inst/nestedPKG'
+
+      ## Run all tests in BiocCheck, include those we know fail
+      ## Use the 'error-on' to prevent this failing the workflow
+      - name: Run BiocCheck without arguments
+        uses: grimbough/bioc-actions/run-BiocCheck@devel
+        with:
+          package-directory: 'inst/nestedPKG'
+          error-on: 'never'
+
+      ## upload the Rcheck folder if the workflow fails
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ matrix.os }}-bioc-${{ matrix.bioc-version}}-sub_folder
+          path: |
+            ${{ steps.build-install-check.outputs.check-dir }}
+
+      - name: Upload install log if that step fails
+        if: always() && (steps.build-install-check.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-bioc-${{ matrix.bioc-version}}-sub_folder-install_log
+          path: |
+            ${{ steps.build-install-check.outputs.install-log }}
+
+  using-bioc-docker:
+    name: Docker Devel
+    strategy:
+      fail-fast: false
+      matrix:
+        ## Test using both Bioconductor devel and release
+        bioc-version: [devel, RELEASE_3_20]
+
+    runs-on: ubuntu-22.04
+    container: bioconductor/bioconductor_docker:${{ matrix.bioc-version }}
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      ##################################################
+      ## no need to install R, BiocManager, or Pandoc ##
+      ##################################################
+
+      ## cache installed packages
+      - name: Cache install R packages
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/lib/R/site-library
+          key: docker-1
+          restore-keys: docker-
+
+      ## we can use BiocManager will install binary packages in the Docker container
+      - name: Install dependencies
         run: |
-          BiocCheck::BiocCheck(
-            package = ".",
-            `quit-with-status` = TRUE,
-            `no-check-bioc-help` = TRUE
-          )
+            BiocManager::install(c('AnnotationHub', 'rtracklayer', 'knitr', 'rmarkdown'))
         shell: Rscript {0}
+
+      - name: Build, Install, Check
+        id: build-install-check
+        uses: grimbough/bioc-actions/build-install-check@devel
+        with:
+          package-directory: '.'
+
+      ## Turn off the checks that we know will fail
+      ## Cause the workflow to error if any new errors appear
+      - name: Run BiocCheck with arguments
+        uses: grimbough/bioc-actions/run-BiocCheck@devel
+        with:
+          package-directory: '.'
+          arguments: '--no-check-bioc-views --no-check-vignettes --no-check-bioc-help'
+          error-on: 'error'
+
+      - name: Upload built package binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-binary
+          path: |
+            ${{ steps.build-install-check.outputs.package-binary }}
+
+      - name: Upload install log if that step fails
+        if: always() && (steps.build-install-check.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-install-log
+          path: |
+            ${{ steps.build-install-check.outputs.install-log }}
+
