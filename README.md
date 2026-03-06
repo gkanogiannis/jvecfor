@@ -51,23 +51,31 @@ for fast KNN search and graph construction, delegating heavy computation to the 
 
 ## Installation
 
-### 1. Build the Java backend
-
-```bash
-make install    # produces inst/java/jvecfor-x.y.z.jar
-```
-
-### 2. Install the R package
+### As an Bioconductor package
 
 ```r
-# From Bioconductor (once submitted):
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
 BiocManager::install("jvecfor")
-
-# From source (development):
-devtools::install("path/to/jvecfor")
 ```
 
-### 3. Copy the JAR into the package
+### Development package
+
+```r
+devtools::install_github("gkanogiannis/jvecfor@main")
+```
+
+### From source
+
+```bash
+git clone https://github.com/gkanogiannis/jvecfor.git
+cd jvecfor
+make install    # produces inst/java/jvecfor-x.y.z.jar
+devtools::install_local(".")
+```
+
+### Update the JAR backend into the package (optional)
 
 ```r
 library(jvecfor)
