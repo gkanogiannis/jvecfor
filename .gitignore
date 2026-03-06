@@ -150,7 +150,6 @@ Thumbs.db
 /doc/
 /Meta/
 /.Rbuildignore
-/man/*.Rd
 /scripts/
 .editorconfig
 !/inst/java/jvecfor*.jar
