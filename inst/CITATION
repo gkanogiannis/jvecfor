@@ -6,6 +6,6 @@ bibentry(
   author   = person("Anestis", "Gkanogiannis",
                     comment = c(ORCID = "0000-0002-6441-0688")),
   year     = "2026",
-  doi      = "10.5281/zenodo.XXXXXXX",
+  doi      = "10.5281/zenodo.18856296",
   url      = "https://github.com/gkanogiannis/jvecfor"
 )
