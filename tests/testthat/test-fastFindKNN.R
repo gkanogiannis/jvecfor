@@ -183,7 +183,7 @@ test_that("version parser identifies Java 8 / 11 as too old (regex unit test)", 
     m <- regmatches(ver_line_11, regexpr('"[0-9]+', ver_line_11))
     major_11 <- suppressWarnings(as.integer(sub('"', "", m, fixed = TRUE)))
     expect_equal(major_11, 11L)
-    expect_true(major_11 < 25L)
+    expect_true(major_11 < 20L)
 
     # Java 8 legacy format: "1.8.0_411"
     ver_line_8 <- 'java version "1.8.0_411" 2024-04-16'
@@ -194,5 +194,5 @@ test_that("version parser identifies Java 8 / 11 as too old (regex unit test)", 
     m8b <- regmatches(ver_line_8, regexpr('"1\\.[0-9]+', ver_line_8))
     major_8 <- suppressWarnings(as.integer(sub('"1.', "", m8b, fixed = TRUE)))
     expect_equal(major_8, 8L)
-    expect_true(major_8 < 25L)
+    expect_true(major_8 < 20L)
 })
