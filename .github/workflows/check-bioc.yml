@@ -22,10 +22,10 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 25
+      - name: Set up JDK 20
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
+          java-version: '20'
           distribution: 'temurin'
 
       - name: Build jvecfor JAR
@@ -108,10 +108,10 @@ jobs:
       ## no need to install R, BiocManager, or Pandoc ##
       ##################################################
 
-      - name: Set up JDK 25
+      - name: Set up JDK 20
         uses: actions/setup-java@v4
         with:
-          java-version: '25'
+          java-version: '20'
           distribution: 'temurin'
 
       - name: Build jvecfor JAR

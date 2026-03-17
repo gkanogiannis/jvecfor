@@ -50,7 +50,7 @@ workflows. It wraps a Java library, built on top of
 
 The R package communicates with the JVM via `system2()` — no JNI, no
 `r CRANpkg("rJava")` dependency. The JAR is bundled in `inst/java/` and
-requires no separate installation step beyond having Java 25+ on your `PATH`.
+requires no separate installation step beyond having Java 20+ on your `PATH`.
 
 ## Function overview
 
@@ -69,16 +69,15 @@ structure to `BiocNeighbors::findKNN()`.
 
 ## Java version
 
-jvecfor requires **Java ≥ 25** on `PATH`. The JAR uses the
+jvecfor requires **Java ≥ 20** on `PATH`. The JAR uses the
 `jdk.incubator.vector` module for SIMD acceleration. Check your installation:
 
 ```{r check-java, eval=FALSE}
-system2("java", "--version")  # should print openjdk 25 or higher
+system2("java", "--version")  # should print openjdk 20 or higher
 ```
 
 If `java` is not found, install [Eclipse Temurin](https://adoptium.net) or
-any OpenJDK 25+ distribution and ensure the `java` binary is on your `PATH`.
-
+any OpenJDK 20+ distribution and ensure the `java` binary is on your `PATH`.
 ## Package options
 
 Two global options control runtime behaviour:
@@ -567,7 +566,7 @@ message(sprintf("Speedup:       %.1fx",  t_bn["elapsed"] / t_jv["elapsed"]))
 err_tbl <- data.frame(
     "Error message" = c(
         "`Java not found on PATH`",
-        "`Java >= 25 is required (found Java X)`",
+        "`Java >= 20 is required (found Java X)`",
         paste("`jvecfor JAR not found.",
                 "Run jvecfor_setup()`"),
         "`jvecfor exited with status N`",
@@ -583,9 +582,9 @@ err_tbl <- data.frame(
         "`k >= nrow(X)`"
     ),
     "Resolution" = c(
-        paste("Install OpenJDK 25+ (adoptium.net);",
+        paste("Install OpenJDK 20+ (adoptium.net);",
                 "re-launch R after updating PATH."),
-        paste("Upgrade to OpenJDK 25+;",
+        paste("Upgrade to OpenJDK 20+;",
                 "verify with `java --version`."),
         "Run `jvecfor_setup()` or reinstall.",
         "Set `verbose=TRUE` to inspect Java stderr.",

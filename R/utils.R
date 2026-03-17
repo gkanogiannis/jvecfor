@@ -42,12 +42,12 @@
     java <- Sys.which("java")
     if (!nzchar(java)) {
         stop(
-            "Java not found on PATH. Install Java >= 25 and ensure 'java' ",
+            "Java not found on PATH. Install Java >= 20 and ensure 'java' ",
             "is on PATH. See https://adoptium.net for distributions."
         )
     }
 
-    # Verify Java >= 25. `java -version` writes to stderr across all JVMs.
+    # Verify Java >= 20. `java -version` writes to stderr across all JVMs.
     ver_raw <- tryCatch(
         system2(java, args = "-version", stdout = TRUE, stderr = TRUE),
         error = function(e) character(0)
@@ -63,9 +63,9 @@
                 if (length(m2) == 1L)
                     major <- as.integer(sub('"1.', "", m2, fixed = TRUE))
             }
-            if (!is.na(major) && major < 25L) {
+            if (!is.na(major) && major < 20L) {
                 stop(
-                    "Java >= 25 is required (found Java ", major, "). ",
+                    "Java >= 20 is required (found Java ", major, "). ",
                     "Install from https://adoptium.net"
                 )
             }
@@ -183,7 +183,7 @@ jvecfor_setup <- function(jar_path = NULL) {
     if (!nzchar(java)) {
         packageStartupMessage(
             "jvecfor: Java not found on PATH. ",
-            "Install Java >= 25 from https://adoptium.net ",
+            "Install Java >= 20 from https://adoptium.net ",
             "before calling fastFindKNN() or related functions."
         )
     }
