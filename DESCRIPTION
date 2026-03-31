@@ -1,7 +1,7 @@
 Package: jvecfor
 Type: Package
 Title: Fast K-Nearest Neighbor Search for Single-Cell Analysis
-Version: 0.99.0
+Version: 0.99.2
 biocViews: SingleCell, GraphAndNetwork, Clustering, Classification
 Authors@R:
     c(person(given = "Anestis",
@@ -27,16 +27,18 @@ LazyData: false
 Depends:
     R (>= 4.5.0)
 Imports:
+    BiocNeighbors,
     BiocParallel,
     Matrix,
     bluster,
-    data.table
+    data.table,
+    methods,
+    processx
 SystemRequirements: Java (>= 20)
 RoxygenNote: 7.3.3
 URL: https://github.com/gkanogiannis/jvecfor
 BugReports: https://github.com/gkanogiannis/jvecfor/issues
 Suggests:
-    BiocNeighbors,
     BiocStyle,
     igraph,
     knitr,

@@ -12,7 +12,9 @@
 #'     matrices.}
 #'   \item{\code{\link{fastMakeSNNGraph}}}{KNN -> SNN graph via bluster.}
 #'   \item{\code{\link{fastMakeKNNGraph}}}{KNN -> KNN graph via bluster.}
-#'   \item{\code{\link{jvecfor_setup}}}{Copy the jvecfor JAR into the package.}
+#'   \item{\code{\link{JvecforParam}}}{BiocNeighbors parameter class for
+#'     drop-in integration with scran, scater, etc.}
+#'   \item{\code{\link{jvecfor_setup}}}{Install a custom jvecfor JAR.}
 #' }
 #'
 #' @section Options:
@@ -25,6 +27,8 @@
 #'
 #' @importFrom BiocParallel bpparam bpworkers
 #' @importFrom data.table fread fwrite
-#' @importFrom Matrix as.matrix
+#' @importFrom Matrix as.matrix writeMM
+#' @importFrom methods as
+#' @importFrom processx run
 #'
 "_PACKAGE"

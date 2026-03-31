@@ -30,8 +30,10 @@ for fast KNN search and graph construction, delegating heavy computation to the 
 ## Features
 
 - **`fastFindKNN()`** — drop-in replacement for `BiocNeighbors::findKNN`; returns index + distance matrices
+- **`JvecforParam()`** — `BiocNeighborParam` subclass for drop-in `BNPARAM` integration with scran, scater, etc.
 - **`fastMakeSNNGraph()`** — convenience wrapper: KNN → `bluster::neighborsToSNNGraph`
 - **`fastMakeKNNGraph()`** — unweighted KNN graph (upper-triangle sparse)
+- **Sparse matrix support** — `dgCMatrix` input written in MatrixMarket format, avoiding R-side densification
 - **Approximate KNN** via HNSW-DiskANN — SIMD-accelerated with AVX2/AVX-512 on supported CPUs
 - **Exact KNN** via VP-tree — for ground-truth validation or small datasets
 - **Product Quantization (PQ)** — optional ~4–8× search speedup with minimal recall loss
@@ -44,7 +46,7 @@ for fast KNN search and graph construction, delegating heavy computation to the 
 
 - R ≥ 4.5.0
 - Java ≥ 20 — must be on `PATH`
-- Bioconductor packages: `bluster`, `BiocNeighbors` (suggested)
+- Bioconductor packages: `BiocNeighbors`, `BiocParallel`, `bluster`
 - Maven 3.9+ (to build the Java backend from source)
 
 ---
@@ -75,12 +77,14 @@ make install    # produces inst/java/jvecfor-x.y.z.jar
 devtools::install_local(".")
 ```
 
-### Update the JAR backend into the package (optional)
+### Install a custom JAR (optional)
 
 ```r
 library(jvecfor)
+# Copies JAR to tools::R_user_dir("jvecfor", "data")
 jvecfor_setup()   # auto-finds java/jvecfor/target/jvecfor-x.y.z.jar
 # or: jvecfor_setup(jar_path = "path/to/jvecfor-x.y.z.jar")
+# or: options(jvecfor.jar = "path/to/jvecfor-x.y.z.jar")  # session-level
 ```
 
 ---
@@ -107,6 +111,11 @@ g <- fastMakeSNNGraph(pca, k = 15, snn.type = "rank")
 
 # Build KNN graph (unweighted)
 g_knn <- fastMakeKNNGraph(pca, k = 15)
+
+# Drop-in BiocNeighbors integration via BNPARAM
+library(BiocNeighbors)
+nn <- findKNN(pca, k = 15, BNPARAM = JvecforParam())
+# Works with scran::buildSNNGraph(sce, BNPARAM = JvecforParam())
 ```
 
 ---
@@ -116,9 +125,10 @@ g_knn <- fastMakeKNNGraph(pca, k = 15)
 | Function | Description |
 |----------|-------------|
 | `fastFindKNN(X, k, type, metric, ...)` | KNN search — returns `list(index, distance)` |
+| `JvecforParam(type, distance, M, ...)` | `BiocNeighborParam` for drop-in `BNPARAM` integration |
 | `fastMakeSNNGraph(X, k, ..., snn.type)` | KNN → SNN graph via `bluster::neighborsToSNNGraph` |
 | `fastMakeKNNGraph(X, k, ...)` | KNN → unweighted upper-triangle sparse KNN graph |
-| `jvecfor_setup(jar_path)` | Copy jvecfor JAR into package installation |
+| `jvecfor_setup(jar_path)` | Install a custom jvecfor JAR to user data directory |
 
 ### Common Parameters
 
@@ -156,7 +166,7 @@ The Java backend is in `java/jvecfor/`. It is a standalone CLI tool and Java lib
 # Build
 cd java/jvecfor
 mvn package -DskipTests        # fast
-mvn package                    # build + run all 62 tests
+mvn package                    # build + run all 66 tests
 
 # Direct CLI usage
 java --add-modules jdk.incubator.vector \

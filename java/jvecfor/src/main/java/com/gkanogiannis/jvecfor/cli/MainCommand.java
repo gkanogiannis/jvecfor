@@ -1,7 +1,12 @@
 package com.gkanogiannis.jvecfor.cli;
 
 import com.gkanogiannis.jvecfor.KNNComputer;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -107,13 +112,41 @@ public class MainCommand implements Callable<Integer> {
     @Option(
             names = {"-i", "--input"},
             description =
-                    "Input TSV file (rows=observations, cols=features, no header)."
+                    "Input file (rows=observations, cols=features)."
                             + " If omitted, reads from stdin.")
     private String inputFile;
 
+    @Option(
+            names = {"--format"},
+            description =
+                    "Input format: tsv (tab-separated, default), mtx (MatrixMarket"
+                            + " coordinate), bin (row-major binary doubles).",
+            defaultValue = "tsv")
+    private String format;
+
+    @Option(
+            names = {"--output-format"},
+            description =
+                    "Output format: text (tab-separated, default), bin (binary"
+                            + " int32 indices + float64 distances).",
+            defaultValue = "text")
+    private String outputFormat;
+
     @Override
     public Integer call() throws IOException {
-        double[][] data = readInput();
+        double[][] data;
+        switch (format.toLowerCase()) {
+            case "mtx":
+                data = readMTXInput();
+                break;
+            case "bin":
+                data = readBinaryInput();
+                break;
+            case "tsv":
+            default:
+                data = readInput();
+                break;
+        }
         if (data.length == 0) {
             System.err.println("Error: no data rows in input.");
             return 1;
@@ -134,7 +167,11 @@ public class MainCommand implements Callable<Integer> {
                                     pqSubspaces)
                             .computeANN(data, k, numThreads);
         }
-        writeOutput(result, outputDist);
+        if ("bin".equalsIgnoreCase(outputFormat)) {
+            writeBinaryOutput(result, outputDist);
+        } else {
+            writeOutput(result, outputDist);
+        }
         return 0;
     }
 
@@ -156,6 +193,88 @@ public class MainCommand implements Callable<Integer> {
             }
         }
         return rows.toArray(new double[0][]);
+    }
+
+    private double[][] readMTXInput() throws IOException {
+        BufferedReader br =
+                (inputFile != null)
+                        ? Files.newBufferedReader(Path.of(inputFile), StandardCharsets.UTF_8)
+                        : new BufferedReader(
+                                new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        try (br) {
+            // Read and validate header
+            String line = br.readLine();
+            if (line == null || !line.startsWith("%%MatrixMarket"))
+                throw new IOException("Invalid MatrixMarket header");
+
+            // Skip comment lines
+            while ((line = br.readLine()) != null && line.startsWith("%")) {
+                // skip
+            }
+
+            // Parse dimensions: nrow ncol nnz
+            if (line == null) throw new IOException("Missing MTX dimension line");
+            String[] dims = line.trim().split("\\s+");
+            int nrow = Integer.parseInt(dims[0]);
+            int ncol = Integer.parseInt(dims[1]);
+
+            // Allocate dense array (zero-initialized by Java)
+            double[][] data = new double[nrow][ncol];
+
+            // Read coordinate entries: row col value (1-indexed)
+            while ((line = br.readLine()) != null) {
+                if (line.isBlank()) continue;
+                String[] parts = line.trim().split("\\s+");
+                int r = Integer.parseInt(parts[0]) - 1;
+                int c = Integer.parseInt(parts[1]) - 1;
+                double v = Double.parseDouble(parts[2]);
+                data[r][c] = v;
+            }
+            return data;
+        }
+    }
+
+    private double[][] readBinaryInput() throws IOException {
+        DataInputStream dis;
+        if (inputFile != null) {
+            dis = new DataInputStream(new BufferedInputStream(new FileInputStream(inputFile)));
+        } else {
+            dis = new DataInputStream(new BufferedInputStream(System.in));
+        }
+        try (dis) {
+            int nrow = dis.readInt();
+            int ncol = dis.readInt();
+            double[][] data = new double[nrow][ncol];
+            for (int i = 0; i < nrow; i++) {
+                for (int j = 0; j < ncol; j++) {
+                    data[i][j] = dis.readDouble();
+                }
+            }
+            return data;
+        }
+    }
+
+    private void writeBinaryOutput(KNNComputer.KNNResult result, boolean includeDist)
+            throws IOException {
+        DataOutputStream dos =
+                new DataOutputStream(new BufferedOutputStream(System.out));
+        int n = result.indices.length;
+        int kk = result.indices[0].length;
+        dos.writeInt(n);
+        dos.writeInt(kk);
+        for (int i = 0; i < n; i++) {
+            for (int jj = 0; jj < kk; jj++) {
+                dos.writeInt(result.indices[i][jj] + 1); // 1-based for R
+            }
+        }
+        if (includeDist) {
+            for (int i = 0; i < n; i++) {
+                for (int jj = 0; jj < kk; jj++) {
+                    dos.writeDouble(result.distances[i][jj]);
+                }
+            }
+        }
+        dos.flush();
     }
 
     private void writeOutput(KNNComputer.KNNResult result, boolean includeDist) {

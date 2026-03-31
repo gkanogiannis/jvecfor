@@ -7,29 +7,29 @@
 \title{jvecfor: Fast K-Nearest Neighbor Search for Single-Cell Analysis}
 \description{
 Drop-in replacement for \code{BiocNeighbors::findKNN} using the jvecfor
-Java library, which implements HNSW-DiskANN approximate search and VP-tree
-exact search with SIMD acceleration (AVX2/AVX-512). The package achieves
-approximately 2x speedup over Annoy-based search at n >= 50K cells while
-returning output structurally identical to BiocNeighbors, making it suitable
-for seamless integration into existing Bioconductor single-cell workflows.
-Convenience wrappers delegate shared nearest-neighbor (SNN) and
-k-nearest-neighbor (KNN) graph construction to the bluster package.
+Java library (HNSW-DiskANN approximate and VP-tree exact methods). Achieves
+approximately 2x speedup over Annoy-based search at n >= 50K cells.
+Convenience wrappers delegate SNN/KNN graph construction to the bluster
+package.
 }
 \section{Main functions}{
 
 \describe{
-  \item{\code{\link{fastFindKNN}}}{KNN search -- returns index + distance matrices.}
+  \item{\code{\link{fastFindKNN}}}{KNN search -- returns index + distance
+    matrices.}
   \item{\code{\link{fastMakeSNNGraph}}}{KNN -> SNN graph via bluster.}
   \item{\code{\link{fastMakeKNNGraph}}}{KNN -> KNN graph via bluster.}
-  \item{\code{\link{jvecfor_setup}}}{Copy the jvecfor JAR into the package.}
+  \item{\code{\link{JvecforParam}}}{BiocNeighbors parameter class for
+    drop-in integration with scran, scater, etc.}
+  \item{\code{\link{jvecfor_setup}}}{Install a custom jvecfor JAR.}
 }
 }
 
 \section{Options}{
 
 \describe{
-  \item{\code{jvecfor.verbose}}{Logical. Enable Java/jvecfor progress logging
-    globally. Default \code{FALSE}.}
+  \item{\code{jvecfor.verbose}}{Logical. Enable Java/jvecfor progress
+    logging globally. Default \code{FALSE}.}
   \item{\code{jvecfor.jar}}{Character. Path to a custom jvecfor JAR file.
     Overrides the bundled JAR in \code{inst/java/}.}
 }

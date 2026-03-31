@@ -22,7 +22,9 @@ fastFindKNN(
 \arguments{
 \item{X}{A numeric matrix, \code{data.frame}, or sparse matrix
 (\code{Matrix::dgCMatrix}) with rows = observations, cols = features.
-Sparse matrices are coerced to dense before processing.}
+Sparse matrices are written in MatrixMarket format and densified in
+the Java backend, avoiding R-side memory allocation of the full dense
+matrix.}
 
 \item{k}{Integer. Number of nearest neighbors to find (excluding self).
 Default 15.}
@@ -33,8 +35,8 @@ Default 15.}
 \item{metric}{Character. Distance metric: \code{"euclidean"},
 \code{"cosine"}, or \code{"dot_product"}. Default \code{"euclidean"}.
 \strong{Note:} \code{"dot_product"} is only valid when
-\code{type = "ann"}; it is not a proper metric and cannot be used with
-the VP-tree exact search.}
+\code{type = "ann"}; it is not a proper metric and cannot be used
+with the VP-tree exact search.}
 
 \item{num.threads}{Integer or NULL. Number of Java threads. If NULL,
 defaults to \code{BiocParallel::bpworkers(BPPARAM)}.}
@@ -47,28 +49,30 @@ controlling the thread count. Defaults to
 \code{max(k+1, 3k)}). Only meaningful when \code{type = "ann"}.
 Default 0L.}
 
-\item{M}{Integer. HNSW-DiskANN maximum connections per node. Higher values
-(e.g. 32) improve recall for high-dimensional data at the cost of more
-memory and a slower build. Only meaningful when \code{type = "ann"}.
-Default 16L.}
+\item{M}{Integer. HNSW-DiskANN maximum connections per node. Higher
+values (e.g. 32) improve recall for high-dimensional data at the
+cost of more memory and a slower build. Only meaningful when
+\code{type = "ann"}. Default 16L.}
 
-\item{oversample.factor}{Numeric. Oversampling multiplier for the ANN beam
-width. When > 1.0, fetches \code{ceil(ef * oversample.factor)} candidates
-and returns the top k, improving recall at proportional cost. Only
-meaningful when \code{type = "ann"}. Default 1.0.}
+\item{oversample.factor}{Numeric. Oversampling multiplier for the ANN
+beam width. When > 1.0, fetches
+\code{ceil(ef * oversample.factor)} candidates and returns the top
+k, improving recall at proportional cost. Only meaningful when
+\code{type = "ann"}. Default 1.0.}
 
-\item{pq.subspaces}{Integer. Number of Product Quantization subspaces for
-approximate ANN scoring (0 = disabled). Typical value:
-\code{ncol(X) / 2}. Reduces search time approximately 4-8x with minimal
-recall loss. Only meaningful when \code{type = "ann"}. Default 0L.}
+\item{pq.subspaces}{Integer. Number of Product Quantization subspaces
+for approximate ANN scoring (0 = disabled). Typical value:
+\code{ncol(X) / 2}. Reduces search time approximately 4-8x with
+minimal recall loss. Only meaningful when \code{type = "ann"}.
+Default 0L.}
 
 \item{get.distance}{Logical. Return distance matrix alongside index?
 Default TRUE.}
 
-\item{verbose}{Logical. Pass \code{--verbose} to the Java process, enabling
-HNSW-DiskANN build progress logging on stderr. Overrides the
-\code{jvecfor.verbose} global option when set explicitly. Default
-\code{getOption("jvecfor.verbose", FALSE)}.}
+\item{verbose}{Logical. Pass \code{--verbose} to the Java process,
+enabling HNSW-DiskANN build progress logging on stderr. Overrides
+the \code{jvecfor.verbose} global option when set explicitly.
+Default \code{getOption("jvecfor.verbose", FALSE)}.}
 }
 \value{
 A named list:
@@ -87,7 +91,7 @@ Java library. Supports HNSW-DiskANN approximate search
 set.seed(42)
 X <- matrix(rnorm(200), nrow = 20, ncol = 10)
 
-# Full examples require Java >= 21 on PATH
+# Full examples require Java >= 20 on PATH
 nn <- fastFindKNN(X, k = 3)
 dim(nn$index)    # 20 x 3
 dim(nn$distance) # 20 x 3

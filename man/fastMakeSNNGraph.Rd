@@ -26,7 +26,8 @@ fastMakeSNNGraph(
 
 \item{k}{Integer. Number of nearest neighbors. Default 15.}
 
-\item{type}{Character. \code{"ann"} or \code{"knn"}. Default \code{"ann"}.}
+\item{type}{Character. \code{"ann"} or \code{"knn"}. Default
+\code{"ann"}.}
 
 \item{metric}{Character. \code{"euclidean"}, \code{"cosine"}, or
 \code{"dot_product"}. Default \code{"euclidean"}. See
@@ -39,7 +40,8 @@ defaults to \code{BiocParallel::bpworkers(BPPARAM)}.}
 controlling the thread count. Defaults to
 \code{\link[BiocParallel]{bpparam}()}.}
 
-\item{ef.search}{Integer. HNSW-DiskANN beam width override (0 = auto). Default 0L.}
+\item{ef.search}{Integer. HNSW-DiskANN beam width override (0 = auto).
+Default 0L.}
 
 \item{M}{Integer. HNSW-DiskANN max connections per node. Default 16L.}
 
@@ -51,8 +53,8 @@ controlling the thread count. Defaults to
 \code{getOption("jvecfor.verbose", FALSE)}.}
 
 \item{snn.type}{Character. SNN weighting scheme passed to
-\code{bluster::neighborsToSNNGraph}: \code{"rank"}, \code{"jaccard"}, or
-\code{"number"}. Default \code{"rank"}.}
+\code{bluster::neighborsToSNNGraph}: \code{"rank"},
+\code{"jaccard"}, or \code{"number"}. Default \code{"rank"}.}
 
 \item{...}{Additional arguments forwarded to
 \code{bluster::neighborsToSNNGraph}.}
@@ -68,7 +70,7 @@ construction to \code{bluster::neighborsToSNNGraph}.
 set.seed(42)
 X <- matrix(rnorm(5000), nrow = 100, ncol = 50)
 
-# Full examples require Java >= 21 on PATH
+# Full examples require Java >= 20 on PATH
 g <- fastMakeSNNGraph(X, k = 10)
 igraph::vcount(g)  # 100
 
