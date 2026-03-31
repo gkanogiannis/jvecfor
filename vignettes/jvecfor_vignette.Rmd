@@ -559,11 +559,11 @@ nn <- findKNN(pca, k = 15, BNPARAM = JvecforParam())
 
 # Customise algorithm parameters via the constructor
 nn2 <- findKNN(pca, k = 15,
-               BNPARAM = JvecforParam(
-                   type = "knn",           # exact VP-tree search
-                   distance = "Cosine",
-                   M = 32L
-               ))
+                BNPARAM = JvecforParam(
+                    type = "knn",           # exact VP-tree search
+                    distance = "Cosine",
+                    M = 32L
+                ))
 ```
 
 ## Timing comparison

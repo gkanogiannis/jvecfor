@@ -205,7 +205,7 @@ setMethod("buildIndex", "JvecforParam",
 #' @exportMethod findKnnFromIndex
 setMethod("findKnnFromIndex", "JvecforIndex",
     function(BNINDEX, k, get.index = TRUE, get.distance = TRUE,
-             num.threads = 1, subset = NULL, ...) {
+                num.threads = 1, subset = NULL, ...) {
         param  <- BNINDEX@param
         metric <- .bn_to_jvecfor_distance(param@distance)
 

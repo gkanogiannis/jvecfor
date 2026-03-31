@@ -1,3 +1,7 @@
+# Changes in jvecfor 0.99.4 (2026-03-31)
+
+* Remove `inst/NEWS.Rd`
+
 # Changes in jvecfor 0.99.3 (2026-03-31)
 
 * Adapt BiocNeighbors integration to 2.5.4 API (Bioc 3.23)
