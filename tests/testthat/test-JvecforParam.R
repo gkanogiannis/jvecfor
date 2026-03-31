@@ -81,7 +81,7 @@ test_that(".bn_to_jvecfor_distance rejects unsupported metrics", {
 test_that("buildIndex creates JvecforIndex with correct data", {
     m <- matrix(rnorm(100), 10, 10)
     p <- JvecforParam()
-    idx <- BiocNeighbors::buildIndex(m, BNPARAM = p)
+    idx <- buildIndex(m, BNPARAM = p)
     expect_s4_class(idx, "JvecforIndex")
     expect_s4_class(idx, "BiocNeighborIndex")
     expect_equal(dim(idx@data), c(10L, 10L))
@@ -92,21 +92,21 @@ test_that("buildIndex creates JvecforIndex with correct data", {
 test_that("buildIndex preserves rownames", {
     m <- matrix(rnorm(100), 10, 10)
     rownames(m) <- paste0("cell", seq_len(10))
-    idx <- BiocNeighbors::buildIndex(m, BNPARAM = JvecforParam())
+    idx <- buildIndex(m, BNPARAM = JvecforParam())
     expect_equal(idx@names, paste0("cell", seq_len(10)))
 })
 
 test_that("buildIndex handles transposed input", {
     m <- matrix(rnorm(100), 10, 10)
-    idx <- BiocNeighbors::buildIndex(m, transposed = TRUE,
-                                     BNPARAM = JvecforParam())
+    idx <- buildIndex(m, BNPARAM = JvecforParam(),
+                      transposed = TRUE)
     # transposed=TRUE means input is features x obs, so it gets t()
     expect_equal(dim(idx@data), c(10L, 10L))
 })
 
 test_that("buildIndex coerces integer to double", {
     m <- matrix(1:100, 10, 10)
-    idx <- BiocNeighbors::buildIndex(m, BNPARAM = JvecforParam())
+    idx <- buildIndex(m, BNPARAM = JvecforParam())
     expect_type(idx@data[1, 1], "double")
 })
 
@@ -122,8 +122,7 @@ test_that("findKNN works with JvecforParam", {
     skip_if_not(has_java && has_jar, "Java/JAR not available")
     set.seed(42)
     m <- matrix(rnorm(500), 50, 10)
-    res <- BiocNeighbors::findKNN(m, k = 5,
-                                  BNPARAM = JvecforParam())
+    res <- findKNN(m, k = 5, BNPARAM = JvecforParam())
     expect_type(res, "list")
     expect_equal(dim(res$index), c(50L, 5L))
     expect_equal(dim(res$distance), c(50L, 5L))
@@ -135,8 +134,8 @@ test_that("findKNN with subset returns filtered rows", {
     skip_if_not(has_java && has_jar, "Java/JAR not available")
     set.seed(42)
     m <- matrix(rnorm(500), 50, 10)
-    res <- BiocNeighbors::findKNN(m, k = 5, subset = 1:10,
-                                  BNPARAM = JvecforParam())
+    res <- findKNN(m, k = 5, subset = 1:10,
+                   BNPARAM = JvecforParam())
     expect_equal(dim(res$index), c(10L, 5L))
     expect_equal(dim(res$distance), c(10L, 5L))
 })
@@ -145,8 +144,8 @@ test_that("findKNN with get.index=FALSE omits index", {
     skip_if_not(has_java && has_jar, "Java/JAR not available")
     set.seed(42)
     m <- matrix(rnorm(500), 50, 10)
-    res <- BiocNeighbors::findKNN(m, k = 5, get.index = FALSE,
-                                  BNPARAM = JvecforParam())
+    res <- findKNN(m, k = 5, get.index = FALSE,
+                   BNPARAM = JvecforParam())
     expect_null(res$index)
     expect_equal(dim(res$distance), c(50L, 5L))
 })
@@ -155,8 +154,8 @@ test_that("findKNN with get.distance=FALSE omits distance", {
     skip_if_not(has_java && has_jar, "Java/JAR not available")
     set.seed(42)
     m <- matrix(rnorm(500), 50, 10)
-    res <- BiocNeighbors::findKNN(m, k = 5, get.distance = FALSE,
-                                  BNPARAM = JvecforParam())
+    res <- findKNN(m, k = 5, get.distance = FALSE,
+                   BNPARAM = JvecforParam())
     expect_equal(dim(res$index), c(50L, 5L))
     expect_null(res$distance)
 })
@@ -165,7 +164,7 @@ test_that("findKNN with Cosine distance works", {
     skip_if_not(has_java && has_jar, "Java/JAR not available")
     set.seed(42)
     m <- matrix(rnorm(500), 50, 10)
-    res <- BiocNeighbors::findKNN(
+    res <- findKNN(
         m, k = 5,
         BNPARAM = JvecforParam(distance = "Cosine")
     )
@@ -176,7 +175,7 @@ test_that("findKNN with type='knn' (exact) works", {
     skip_if_not(has_java && has_jar, "Java/JAR not available")
     set.seed(42)
     m <- matrix(rnorm(500), 50, 10)
-    res <- BiocNeighbors::findKNN(
+    res <- findKNN(
         m, k = 5,
         BNPARAM = JvecforParam(type = "knn")
     )
@@ -187,7 +186,7 @@ test_that("findKNN results match fastFindKNN", {
     skip_if_not(has_java && has_jar, "Java/JAR not available")
     set.seed(42)
     m <- matrix(rnorm(500), 50, 10)
-    res_bn <- BiocNeighbors::findKNN(
+    res_bn <- findKNN(
         m, k = 5,
         BNPARAM = JvecforParam(type = "knn")
     )

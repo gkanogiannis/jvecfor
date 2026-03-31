@@ -1,7 +1,7 @@
 Package: jvecfor
 Type: Package
 Title: Fast K-Nearest Neighbor Search for Single-Cell Analysis
-Version: 0.99.2
+Version: 0.99.3
 biocViews: SingleCell, GraphAndNetwork, Clustering, Classification
 Authors@R:
     c(person(given = "Anestis",
@@ -25,7 +25,7 @@ Encoding: UTF-8
 Language: en-US
 LazyData: false
 Depends:
-    R (>= 4.5.0)
+    R (>= 4.6.0)
 Imports:
     BiocNeighbors,
     BiocParallel,

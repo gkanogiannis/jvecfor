@@ -417,10 +417,9 @@ test_that("jvecfor_setup stops on missing jar_path", {
 })
 
 test_that("jvecfor_setup installs JAR to R_user_dir", {
-    # Create a fake JAR
-    tmp_jar <- tempfile(
-        pattern = "jvecfor-99.99.99", fileext = ".jar"
-    )
+    # Create a fake JAR with a deterministic name
+    tmp_dir <- tempdir()
+    tmp_jar <- file.path(tmp_dir, "jvecfor-99.99.99.jar")
     writeLines("fake", tmp_jar)
     on.exit(unlink(tmp_jar), add = TRUE)
 

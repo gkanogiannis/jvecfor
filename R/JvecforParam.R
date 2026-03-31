@@ -67,8 +67,8 @@
 #'   full parameter control including \code{dot_product} metric.
 #'
 #' @importClassesFrom BiocNeighbors BiocNeighborParam BiocNeighborIndex
-#' @importMethodsFrom BiocNeighbors buildIndex findKNN show
-#' @importFrom methods setClass setMethod new is
+#' @importFrom BiocNeighbors buildIndex findKnnFromIndex findKNN
+#' @importFrom methods setClass setMethod new is show
 #'
 #' @export
 #' @exportClass JvecforParam
@@ -138,9 +138,9 @@ setMethod("show", "JvecforParam", function(object) {
 #' JvecforIndex: BiocNeighbors Index Class for jvecfor
 #'
 #' A \link[BiocNeighbors:BiocNeighborIndex-class]{BiocNeighborIndex}
-#' subclass storing the data matrix and \code{JvecforParam} parameters. The actual Java HNSW/VP-tree
-#' index is built on-the-fly when \code{\link[BiocNeighbors]{findKNN}}
-#' is called.
+#' subclass storing the data matrix and \code{JvecforParam} parameters.
+#' The actual Java HNSW/VP-tree index is built on-the-fly when
+#' \code{\link[BiocNeighbors]{findKNN}} is called.
 #'
 #' @slot data Numeric matrix (rows = observations, cols = features).
 #' @slot param A \code{\link{JvecforParam}} object.
@@ -172,9 +172,10 @@ setClass("JvecforIndex",
 #' @return A \code{\linkS4class{JvecforIndex}} object.
 #'
 #' @exportMethod buildIndex
-setMethod("buildIndex", c("matrix", "JvecforParam"),
-    function(X, transposed = FALSE, ..., BNPARAM = NULL) {
+setMethod("buildIndex", "JvecforParam",
+    function(X, BNPARAM, transposed = FALSE, ...) {
         if (transposed) X <- t(X)
+        if (!is.matrix(X)) X <- as.matrix(X)
         if (!is.double(X)) storage.mode(X) <- "double"
         new("JvecforIndex",
             data  = X,
@@ -184,11 +185,12 @@ setMethod("buildIndex", c("matrix", "JvecforParam"),
     }
 )
 
-# -- findKNN method -----------------------------------------------------------
+# -- findKnnFromIndex method --------------------------------------------------
 
 #' @describeIn JvecforParam Find k-nearest neighbors using a
 #'   JvecforIndex.
 #'
+#' @param BNINDEX A \code{\linkS4class{JvecforIndex}} object.
 #' @param k Integer. Number of nearest neighbors.
 #' @param get.index Logical. Return index matrix? Default TRUE.
 #' @param get.distance Logical. Return distance matrix? Default TRUE.
@@ -196,31 +198,19 @@ setMethod("buildIndex", c("matrix", "JvecforParam"),
 #' @param subset Integer vector. Row indices to return results for.
 #'   All rows are computed; this filters the output. Default NULL
 #'   (all rows).
-#' @param BNPARAM Ignored for this method.
 #'
 #' @return A named list with \code{index} (n-by-k integer matrix or
 #'   NULL) and \code{distance} (n-by-k numeric matrix or NULL).
 #'
-#' @exportMethod findKNN
-setMethod("findKNN", "JvecforIndex",
-    function(X, k, get.index = TRUE, get.distance = TRUE,
-             num.threads = 1, subset = NULL, ...,
-             BNPARAM = NULL) {
-        param  <- X@param
+#' @exportMethod findKnnFromIndex
+setMethod("findKnnFromIndex", "JvecforIndex",
+    function(BNINDEX, k, get.index = TRUE, get.distance = TRUE,
+             num.threads = 1, subset = NULL, ...) {
+        param  <- BNINDEX@param
         metric <- .bn_to_jvecfor_distance(param@distance)
 
-        # Check for BPPARAM in ... (passed by BiocNeighbors matrix
-        # dispatch)
-        dots <- list(...)
-        if (!is.null(dots$BPPARAM)) {
-            num.threads <- max(
-                1L,
-                as.integer(BiocParallel::bpworkers(dots$BPPARAM))
-            )
-        }
-
         result <- fastFindKNN(
-            X                 = X@data,
+            X                 = BNINDEX@data,
             k                 = k,
             type              = param@type,
             metric            = metric,

@@ -1,3 +1,16 @@
+# Changes in jvecfor 0.99.3 (2026-03-31)
+
+* Adapt BiocNeighbors integration to 2.5.4 API (Bioc 3.23)
+
+# Changes in jvecfor 0.99.2 (2026-03-31)
+
+* JvecforParam/JvecforIndex S4 classes for BNPARAM drop-in integration
+* Native sparse matrix support via MatrixMarket in Java backend
+* Binary format for dense matrices, processx for process management
+* jvecfor_setup() uses tools::R_user_dir() per Bioconductor policy
+* Test coverage 70.9\% -> 85.5\%
+* BiocNeighbors moved to Imports; vignette updates
+
 # Changes in jvecfor 0.99.0
 
 * Submitted to Bioconductor.

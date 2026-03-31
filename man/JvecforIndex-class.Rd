@@ -6,9 +6,9 @@
 \title{JvecforIndex: BiocNeighbors Index Class for jvecfor}
 \description{
 A \link[BiocNeighbors:BiocNeighborIndex-class]{BiocNeighborIndex}
-subclass storing the data matrix and \code{JvecforParam} parameters. The actual Java HNSW/VP-tree
-index is built on-the-fly when \code{\link[BiocNeighbors]{findKNN}}
-is called.
+subclass storing the data matrix and \code{JvecforParam} parameters.
+The actual Java HNSW/VP-tree index is built on-the-fly when
+\code{\link[BiocNeighbors]{findKNN}} is called.
 }
 \section{Slots}{
 

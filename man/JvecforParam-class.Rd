@@ -5,8 +5,8 @@
 \alias{JvecforParam-class}
 \alias{JvecforParam}
 \alias{show,JvecforParam-method}
-\alias{buildIndex,matrix,JvecforParam-method}
-\alias{findKNN,JvecforIndex-method}
+\alias{buildIndex,JvecforParam-method}
+\alias{findKnnFromIndex,JvecforIndex-method}
 \title{JvecforParam: BiocNeighbors Parameter Class for jvecfor}
 \usage{
 JvecforParam(
@@ -21,17 +21,16 @@ JvecforParam(
 
 \S4method{show}{JvecforParam}(object)
 
-\S4method{buildIndex}{matrix,JvecforParam}(X, transposed = FALSE, ..., BNPARAM = NULL)
+\S4method{buildIndex}{JvecforParam}(X, BNPARAM, transposed = FALSE, ...)
 
-\S4method{findKNN}{JvecforIndex}(
-  X,
+\S4method{findKnnFromIndex}{JvecforIndex}(
+  BNINDEX,
   k,
   get.index = TRUE,
   get.distance = TRUE,
   num.threads = 1,
   subset = NULL,
-  ...,
-  BNPARAM = NULL
+  ...
 )
 }
 \arguments{
@@ -54,12 +53,14 @@ JvecforParam(
 
 \item{X}{A numeric matrix (rows = observations, cols = features).}
 
+\item{BNPARAM}{A \code{JvecforParam} object.}
+
 \item{transposed}{Logical. If TRUE, \code{X} is features-by-obs
 and will be transposed. Default FALSE.}
 
 \item{...}{Ignored.}
 
-\item{BNPARAM}{Ignored for this method.}
+\item{BNINDEX}{A \code{\linkS4class{JvecforIndex}} object.}
 
 \item{k}{Integer. Number of nearest neighbors.}
 
@@ -93,9 +94,9 @@ neighbor search through jvecfor's HNSW-DiskANN or VP-tree engine.
 \itemize{
 \item \code{show(JvecforParam)}: Print a summary of the parameter object.
 
-\item \code{buildIndex(X = matrix, BNPARAM = JvecforParam)}: Build a JvecforIndex from a data matrix.
+\item \code{buildIndex(JvecforParam)}: Build a JvecforIndex from a data matrix.
 
-\item \code{findKNN(JvecforIndex)}: Find k-nearest neighbors using a
+\item \code{findKnnFromIndex(JvecforIndex)}: Find k-nearest neighbors using a
 JvecforIndex.
 
 }}
