@@ -214,12 +214,11 @@ raises an informative error:
 ```{r metric-dotproduct, eval=run_eg}
 # ANN with dot-product similarity
 nn_dot <- fastFindKNN(pca_norm, k = 15, metric = "dot_product", type = "ann")
+```
 
+```{r metric-dotproduct-error, eval=run_eg, error=TRUE}
 # Attempting exact + dot_product raises an error
-tryCatch(
-    fastFindKNN(pca, k = 15, metric = "dot_product", type = "knn"),
-    error = function(e) conditionMessage(e)
-)
+fastFindKNN(pca, k = 15, metric = "dot_product", type = "knn")
 ```
 
 ## Skipping distance computation
@@ -529,8 +528,8 @@ library(BiocNeighbors)
 # BiocNeighbors (Annoy backend, the default ANN method)
 nn_bn <- BiocNeighbors::findKNN(pca, k = 15, BNPARAM = AnnoyParam())
 
-# jvecfor (HNSW-DiskANN backend)
-nn_jv <- jvecfor::findKNN(pca, k = 15)
+# jvecfor (HNSW-DiskANN backend) — standalone function
+nn_jv <- jvecfor::fastFindKNN(pca, k = 15)
 
 # Same structure
 identical(names(nn_bn), names(nn_jv))   # TRUE — both have $index, $distance
@@ -539,6 +538,33 @@ identical(dim(nn_bn$index), dim(nn_jv$index))  # TRUE
 
 Results will not be identical because both methods are approximate — they
 use different ANN algorithms with different recall characteristics.
+
+## Drop-in BiocNeighbors integration
+
+`JvecforParam` is a `BiocNeighborParam` subclass, so you can pass it
+as the `BNPARAM` argument to any Bioconductor function that accepts one:
+
+```{r bnparam-dropin, eval=FALSE}
+library(BiocNeighbors)
+
+# Use jvecfor through the standard BiocNeighbors interface
+nn <- findKNN(pca, k = 15, BNPARAM = JvecforParam())
+
+# Works with scran, scater, and other BNPARAM-aware packages:
+# library(scran)
+# g <- buildSNNGraph(sce, BNPARAM = JvecforParam())
+#
+# library(scater)
+# sce <- runUMAP(sce, BNPARAM = JvecforParam())
+
+# Customise algorithm parameters via the constructor
+nn2 <- findKNN(pca, k = 15,
+               BNPARAM = JvecforParam(
+                   type = "knn",           # exact VP-tree search
+                   distance = "Cosine",
+                   M = 32L
+               ))
+```
 
 ## Timing comparison
 

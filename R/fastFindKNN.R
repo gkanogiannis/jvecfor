@@ -1,6 +1,7 @@
 .coerce_X <- function(X) {
+    is_sparse <- FALSE
     if (inherits(X, c("dgCMatrix", "sparseMatrix"))) {
-        X <- as.matrix(X)
+        is_sparse <- TRUE
     } else if (is.data.frame(X)) {
         X <- as.matrix(X)
     } else if (!is.matrix(X)) {
@@ -9,8 +10,11 @@
             "(Matrix::dgCMatrix)."
         )
     }
-    if (!is.numeric(X)) stop("X must contain numeric values.")
-    X
+    if (!is_sparse && !is.numeric(X))
+        stop("X must contain numeric values.")
+    if (is_sparse && !is.numeric(X@x))
+        stop("X must contain numeric values.")
+    list(X = X, is_sparse = is_sparse)
 }
 
 .validate_knn_scalars <- function(
@@ -72,7 +76,7 @@
 .build_java_args <- function(
     jar, k, metric, num_threads, type,
     ef.search, M, oversample.factor, pq.subspaces,
-    get.distance, verbose
+    get.distance, verbose, format, input_file
 ) {
     args <- c(
         "--add-modules", "jdk.incubator.vector",
@@ -84,30 +88,39 @@
         "--ef-search",         as.character(ef.search),
         "-M",                  as.character(M),
         "--oversample-factor", as.character(oversample.factor),
-        "--pq-subspaces",      as.character(pq.subspaces)
+        "--pq-subspaces",      as.character(pq.subspaces),
+        "--format",            format,
+        "-i",                  input_file
     )
     if (get.distance)    args <- c(args, "--output-dist")
     if (isTRUE(verbose)) args <- c(args, "--verbose")
     args
 }
 
-.run_java <- function(java_args, tsv_in, verbose) {
-    out <- system2(
-        "java",
-        args   = java_args,
-        stdout = TRUE,
-        stderr = if (isTRUE(verbose)) "" else FALSE,
-        stdin  = tsv_in
+.run_java <- function(java_args, verbose) {
+    result <- processx::run(
+        command          = "java",
+        args             = java_args,
+        stdout           = "|",
+        stderr           = if (isTRUE(verbose)) "|" else NULL,
+        error_on_status  = FALSE
     )
-    status <- attr(out, "status")
-    if (!is.null(status) && status != 0L) {
-        stop(
-            "jvecfor exited with status ", status, ". ",
-            "Set verbose=TRUE (or options(jvecfor.verbose=TRUE)) to see ",
-            "Java stderr."
+    if (result$status != 0L) {
+        msg <- paste0(
+            "jvecfor exited with status ", result$status, "."
         )
+        if (isTRUE(verbose) && nzchar(result$stderr)) {
+            msg <- paste0(msg, "\nJava stderr:\n", result$stderr)
+        } else {
+            msg <- paste0(
+                msg,
+                " Set verbose=TRUE (or options(jvecfor.verbose=TRUE))",
+                " to see Java stderr."
+            )
+        }
+        stop(msg)
     }
-    out
+    strsplit(result$stdout, "\n", fixed = TRUE)[[1L]]
 }
 
 .parse_knn_output <- function(out, k, get.distance) {
@@ -132,7 +145,9 @@
 #'
 #' @param X A numeric matrix, \code{data.frame}, or sparse matrix
 #'   (\code{Matrix::dgCMatrix}) with rows = observations, cols = features.
-#'   Sparse matrices are coerced to dense before processing.
+#'   Sparse matrices are written in MatrixMarket format and densified in
+#'   the Java backend, avoiding R-side memory allocation of the full dense
+#'   matrix.
 #' @param k Integer. Number of nearest neighbors to find (excluding self).
 #'   Default 15.
 #' @param type Character. \code{"ann"} for approximate (HNSW-DiskANN) or
@@ -212,7 +227,10 @@ fastFindKNN <- function(
     type   <- match.arg(type)
     metric <- match.arg(metric)
 
-    X <- .coerce_X(X)
+    coerced   <- .coerce_X(X)
+    X         <- coerced$X
+    is_sparse <- coerced$is_sparse
+
     p <- .validate_knn_scalars(
         k, X, metric, type,
         ef.search, M, oversample.factor, pq.subspaces
@@ -228,15 +246,16 @@ fastFindKNN <- function(
     .check_java()
     jar <- .jvecfor_jar()
 
-    tsv_in <- tempfile(fileext = ".tsv")
-    on.exit(unlink(tsv_in), add = TRUE)
-    .write_tsv(X, tsv_in)
+    format     <- if (is_sparse) "mtx" else "bin"
+    input_file <- .write_input(X, format)
+    on.exit(unlink(input_file), add = TRUE)
 
     java_args <- .build_java_args(
         jar, k, metric, num_threads, type,
         ef.search, M, oversample.factor,
-        pq.subspaces, get.distance, verbose
+        pq.subspaces, get.distance, verbose,
+        format, input_file
     )
-    out <- .run_java(java_args, tsv_in, verbose)
+    out <- .run_java(java_args, verbose)
     .parse_knn_output(out, k, get.distance)
 }

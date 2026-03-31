@@ -7,7 +7,15 @@
         return(opt)
     }
 
-    # Priority 2: find any versioned JAR in inst/java/ of installed package
+    # Priority 2: user-installed JAR in R_user_dir
+    user_dir <- tools::R_user_dir("jvecfor", "data")
+    if (dir.exists(user_dir)) {
+        jars <- dir(user_dir, pattern = "^jvecfor-[0-9]+.*\\.jar$",
+                    full.names = TRUE)
+        if (length(jars) > 0L) return(jars[[1L]])
+    }
+
+    # Priority 3: bundled JAR in inst/java/ of installed package
     java_dir <- system.file("java", package = "jvecfor")
     if (nzchar(java_dir)) {
         jars <- dir(java_dir, pattern = "^jvecfor-[0-9]+.*\\.jar$",
@@ -76,8 +84,6 @@
 }
 
 .write_tsv <- function(mat, file) {
-    # nThread = 1L: avoids data.table fork conflicts with the Java ForkJoinPool.
-    # The bottleneck is Java computation, not TSV serialisation.
     fwrite(
         as.data.frame(mat),
         file      = file,
@@ -85,6 +91,67 @@
         col.names = FALSE,
         nThread   = 1L
     )
+}
+
+.write_mtx <- function(X, file) {
+    if (!inherits(X, "dgCMatrix")) {
+        X <- as(X, "dgCMatrix")
+    }
+    writeMM(X, file)
+}
+
+.write_bin <- function(mat, file) {
+    con <- file(file, "wb")
+    on.exit(close(con))
+    writeBin(as.integer(nrow(mat)), con, size = 4L, endian = "big")
+    writeBin(as.integer(ncol(mat)), con, size = 4L, endian = "big")
+    # t(mat) then as.vector gives row-major order
+    writeBin(as.vector(t(mat)), con, size = 8L, endian = "big")
+}
+
+.write_input <- function(X, format) {
+    ext <- switch(format,
+        mtx = ".mtx",
+        bin = ".bin",
+        tsv = ".tsv",
+        stop("Unknown format: ", format)
+    )
+    file <- tempfile(fileext = ext)
+    switch(format,
+        mtx = .write_mtx(X, file),
+        bin = .write_bin(X, file),
+        tsv = .write_tsv(X, file)
+    )
+    file
+}
+
+.serialize_bin <- function(mat) {
+    con <- rawConnection(raw(0L), "wb")
+    on.exit(close(con))
+    writeBin(as.integer(nrow(mat)), con, size = 4L, endian = "big")
+    writeBin(as.integer(ncol(mat)), con, size = 4L, endian = "big")
+    writeBin(as.vector(t(mat)), con, size = 8L, endian = "big")
+    rawConnectionValue(con)
+}
+
+.serialize_mtx <- function(X) {
+    if (!inherits(X, "dgCMatrix")) {
+        X <- as(X, "dgCMatrix")
+    }
+    # Convert to triplet form for coordinate output
+    Xt <- as(X, "TsparseMatrix")
+    nnz <- length(Xt@x)
+    header <- paste0(
+        "%%MatrixMarket matrix coordinate real general\n",
+        nrow(X), " ", ncol(X), " ", nnz, "\n"
+    )
+    # Xt@i and Xt@j are 0-indexed; MTX is 1-indexed
+    # Use %.17g to preserve full double precision
+    entries <- paste(
+        Xt@i + 1L, Xt@j + 1L, sprintf("%.17g", Xt@x),
+        collapse = "\n"
+    )
+    charToRaw(paste0(header, entries, "\n"))
 }
 
 .read_matrix_from_text <- function(lines) {
@@ -95,45 +162,42 @@
     ))
 }
 
-#' Copy the jvecfor JAR into the jvecfor package installation directory
+#' Install a Custom jvecfor JAR
 #'
-#' The jvecfor JAR is already bundled in the installed package. Call
-#' \code{jvecfor_setup()} only if you have built a custom JAR and want
-#' to replace the bundled one.
+#' Copies a custom jvecfor JAR to the user data directory
+#' (\code{tools::R_user_dir("jvecfor", "data")}). The bundled JAR in
+#' \code{inst/java/} is used by default; call \code{jvecfor_setup()} only
+#' to override it with a custom build. Alternatively, set
+#' \code{options(jvecfor.jar = "/path/to/jvecfor.jar")} for a session-level
+#' override without copying.
 #'
 #' @param jar_path Path to the jvecfor JAR. If \code{NULL}, auto-searches
-#'   \code{jvecfor/target/jvecfor-*.jar} relative to the working directory
-#'   (works when developing inside the source tree).
+#'   \code{java/jvecfor/target/jvecfor-*.jar} relative to the working
+#'   directory (works when developing inside the source tree).
 #'
 #' @return Invisibly returns the path to the installed JAR.
 #'
 #' @examples
-#' # List all JARs bundled in the package
+#' # Show where custom JARs are stored
+#' tools::R_user_dir("jvecfor", "data")
+#'
+#' # List bundled JARs
 #' dir(system.file("java", package = "jvecfor"), pattern = "*.jar")
 #'
 #' @export
 jvecfor_setup <- function(jar_path = NULL) {
-    dest_dir <- system.file("java", package = "jvecfor")
-    if (!nzchar(dest_dir))
-        stop("jvecfor package does not appear to be installed.")
     if (is.null(jar_path)) {
-        pkg_dir    <- dirname(dest_dir)
         candidates <- Sys.glob(
-            file.path(pkg_dir, "..", "java", "jvecfor", "target",
-            "jvecfor-[0-9]*.jar")
+            file.path("java", "jvecfor", "target",
+                      "jvecfor-[0-9]*.jar")
         )
         candidates <- c(
             candidates,
             Sys.glob(
-                file.path("java", "jvecfor", "target",
-                "jvecfor-[0-9]*.jar")
-            ),
-            Sys.glob(
                 file.path("jvecfor", "java", "jvecfor", "target",
-                "jvecfor-[0-9]*.jar")
+                          "jvecfor-[0-9]*.jar")
             )
         )
-        # Keep only plain versioned JARs, not classifier variants
         candidates <- grep(
             "-jar-with-dependencies|-sources|-javadoc|original-",
             candidates, value = TRUE, invert = TRUE
@@ -150,13 +214,17 @@ jvecfor_setup <- function(jar_path = NULL) {
 
     if (!file.exists(jar_path)) stop("JAR not found: ", jar_path)
 
-    # Extract the version from the source JAR's filename
     ver_m <- regmatches(
         basename(jar_path),
         regexpr("[0-9]+\\.[0-9]+\\.[0-9]+", basename(jar_path))
     )
     if (length(ver_m) == 0L)
         stop("Cannot parse version from JAR filename: ", basename(jar_path))
+
+    dest_dir <- tools::R_user_dir("jvecfor", "data")
+    if (!dir.exists(dest_dir))
+        dir.create(dest_dir, recursive = TRUE)
+
     dest <- file.path(dest_dir, paste0("jvecfor-", ver_m, ".jar"))
     file.copy(jar_path, dest, overwrite = TRUE)
     message("jvecfor: JAR installed to ", dest)
