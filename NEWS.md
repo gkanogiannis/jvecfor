@@ -1,3 +1,7 @@
+# Changes in jvecfor 0.99.5 (2026-03-31)
+
+* Fix NOTES
+
 # Changes in jvecfor 0.99.4 (2026-03-31)
 
 * Remove `inst/NEWS.Rd`

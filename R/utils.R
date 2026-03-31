@@ -189,13 +189,13 @@ jvecfor_setup <- function(jar_path = NULL) {
     if (is.null(jar_path)) {
         candidates <- Sys.glob(
             file.path("java", "jvecfor", "target",
-                      "jvecfor-[0-9]*.jar")
+                        "jvecfor-[0-9]*.jar")
         )
         candidates <- c(
             candidates,
             Sys.glob(
                 file.path("jvecfor", "java", "jvecfor", "target",
-                          "jvecfor-[0-9]*.jar")
+                            "jvecfor-[0-9]*.jar")
             )
         )
         candidates <- grep(
