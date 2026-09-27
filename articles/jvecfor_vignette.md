@@ -370,7 +370,7 @@ class(g_snn)
 igraph::vcount(g_snn)   # 300 — one vertex per cell
 #> [1] 300
 igraph::ecount(g_snn)   # weighted undirected edges
-#> [1] 34466
+#> [1] 34470
 ```
 
 The `snn.type` argument controls how edge weights are computed:
