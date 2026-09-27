@@ -162,7 +162,13 @@ acceleration. Check your installation:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/system2.html" class="external-link">system2</a></span><span class="op">(</span><span class="st">"java"</span>, <span class="st">"--version"</span><span class="op">)</span>  <span class="co"># should print openjdk 20 or higher</span></span></code></pre></div>
 <p>If <code>java</code> is not found, install <a href="https://adoptium.net" class="external-link">Eclipse Temurin</a> or any OpenJDK 20+
 distribution and ensure the <code>java</code> binary is on your
-<code>PATH</code>. ## Package options</p>
+<code>PATH</code>. If <code>JAVA_HOME</code> is set, jvecfor tries
+<code>$JAVA_HOME/bin/java</code> first and uses whichever of it and the
+<code>java</code> on <code>PATH</code> is Java 20 or newer.</p>
+</div>
+<div class="section level3">
+<h3 id="package-options">Package options<a class="anchor" aria-label="anchor" href="#package-options"></a>
+</h3>
 <p>Two global options control runtime behaviour:</p>
 <table class="table">
 <colgroup>
@@ -519,7 +525,7 @@ graph constructors.</p>
 <span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/gorder.html" class="external-link">vcount</a></span><span class="op">(</span><span class="va">g_snn</span><span class="op">)</span>   <span class="co"># 300 — one vertex per cell</span></span>
 <span><span class="co">#&gt; [1] 300</span></span>
 <span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/gsize.html" class="external-link">ecount</a></span><span class="op">(</span><span class="va">g_snn</span><span class="op">)</span>   <span class="co"># weighted undirected edges</span></span>
-<span><span class="co">#&gt; [1] 34470</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 34458</span></span></code></pre></div>
 <p>The <code>snn.type</code> argument controls how edge weights are
 computed:</p>
 <table class="table">
@@ -560,7 +566,7 @@ computed:</p>
 <span><span class="co"># Edge weight ranges differ between types</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/E.html" class="external-link">E</a></span><span class="op">(</span><span class="va">g_rank</span><span class="op">)</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span></span>
 <span><span class="co">#&gt;      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. </span></span>
-<span><span class="co">#&gt;  0.000001  6.500000  9.000000  8.706542 11.000000 14.500000</span></span>
+<span><span class="co">#&gt;  0.000001  6.500000  9.000000  8.707383 11.000000 14.500000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/E.html" class="external-link">E</a></span><span class="op">(</span><span class="va">g_jaccard</span><span class="op">)</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
 <span><span class="co">#&gt; 0.03226 0.03226 0.06667 0.07545 0.10345 0.45455</span></span></code></pre></div>

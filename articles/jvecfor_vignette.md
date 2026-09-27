@@ -62,7 +62,10 @@ system2("java", "--version")  # should print openjdk 20 or higher
 
 If `java` is not found, install [Eclipse Temurin](https://adoptium.net)
 or any OpenJDK 20+ distribution and ensure the `java` binary is on your
-`PATH`. \## Package options
+`PATH`. If `JAVA_HOME` is set, jvecfor tries `$JAVA_HOME/bin/java` first
+and uses whichever of it and the `java` on `PATH` is Java 20 or newer.
+
+### Package options
 
 Two global options control runtime behaviour:
 
@@ -370,7 +373,7 @@ class(g_snn)
 igraph::vcount(g_snn)   # 300 — one vertex per cell
 #> [1] 300
 igraph::ecount(g_snn)   # weighted undirected edges
-#> [1] 34470
+#> [1] 34458
 ```
 
 The `snn.type` argument controls how edge weights are computed:
@@ -390,7 +393,7 @@ g_number  <- fastMakeSNNGraph(pca, k = 15, snn.type = "number")
 # Edge weight ranges differ between types
 summary(igraph::E(g_rank)$weight)
 #>      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-#>  0.000001  6.500000  9.000000  8.706542 11.000000 14.500000
+#>  0.000001  6.500000  9.000000  8.707383 11.000000 14.500000
 summary(igraph::E(g_jaccard)$weight)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 #> 0.03226 0.03226 0.06667 0.07545 0.10345 0.45455
