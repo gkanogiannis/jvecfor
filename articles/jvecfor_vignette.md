@@ -393,7 +393,7 @@ g_number  <- fastMakeSNNGraph(pca, k = 15, snn.type = "number")
 # Edge weight ranges differ between types
 summary(igraph::E(g_rank)$weight)
 #>      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-#>  0.000001  6.500000  9.000000  8.707383 11.000000 14.500000
+#>  0.000001  6.500000  9.000000  8.705406 11.000000 14.500000
 summary(igraph::E(g_jaccard)$weight)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 #> 0.03226 0.03226 0.06667 0.07545 0.10345 0.45455
@@ -671,13 +671,13 @@ nn <- tryCatch(
 ``` r
 
 sessionInfo()
-#> R version 4.6.1 (2026-06-24)
+#> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.5 LTS
+#> Running under: Ubuntu 26.04.1 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
-#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.32.so;  LAPACK version 3.12.0
 #> 
 #> locale:
 #>  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
@@ -692,24 +692,24 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] igraph_2.3.3     jvecfor_1.1.1    BiocStyle_2.40.0
+#> [1] igraph_2.3.4     jvecfor_1.2.0    BiocStyle_2.40.0
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] Matrix_1.7-5        jsonlite_2.0.0      compiler_4.6.1     
-#>  [4] BiocManager_1.30.27 Rcpp_1.1.2          parallel_4.6.1     
-#>  [7] cluster_2.1.8.2     jquerylib_0.1.4     systemfonts_1.3.2  
-#> [10] textshaping_1.0.5   BiocParallel_1.46.0 yaml_2.3.12        
-#> [13] fastmap_1.2.0       lattice_0.22-9      R6_2.6.1           
+#>  [1] Matrix_1.7-6        jsonlite_2.0.0      compiler_4.6.2     
+#>  [4] BiocManager_1.30.27 Rcpp_1.1.2          parallel_4.6.2     
+#>  [7] cluster_2.1.8.3     jquerylib_0.1.4     systemfonts_1.3.4  
+#> [10] textshaping_1.1.0   BiocParallel_1.46.0 yaml_2.3.12        
+#> [13] fastmap_1.2.0       lattice_0.23-1      R6_2.6.1           
 #> [16] generics_0.1.4      knitr_1.52          BiocGenerics_0.58.1
 #> [19] bluster_1.22.0      bookdown_0.48       desc_1.4.3         
 #> [22] bslib_0.12.0        pillar_1.11.1       BiocNeighbors_2.6.0
-#> [25] rlang_1.3.0         cachem_1.1.0        xfun_0.61          
-#> [28] fs_2.1.0            sass_0.4.10         otel_0.2.0         
+#> [25] rlang_1.3.0         cachem_1.1.0        xfun_0.62          
+#> [28] fs_2.1.0            sass_0.5.0          otel_0.3.0         
 #> [31] cli_3.6.6           magrittr_2.0.5      pkgdown_2.2.1      
-#> [34] ps_1.9.3            digest_0.6.39       grid_4.6.1         
-#> [37] processx_3.9.0      lifecycle_1.0.5     S4Vectors_0.50.3   
+#> [34] ps_1.9.3            digest_0.6.39       grid_4.6.2         
+#> [37] processx_3.10.0     lifecycle_1.0.5     S4Vectors_0.50.3   
 #> [40] vctrs_0.7.3         evaluate_1.0.5      glue_1.8.1         
 #> [43] data.table_1.18.6.1 codetools_0.2-20    ragg_1.5.2         
-#> [46] stats4_4.6.1        rmarkdown_2.32      pkgconfig_2.0.3    
-#> [49] tools_4.6.1         htmltools_0.5.9
+#> [46] stats4_4.6.2        rmarkdown_2.32      pkgconfig_2.0.3    
+#> [49] tools_4.6.2         htmltools_0.5.9
 ```
