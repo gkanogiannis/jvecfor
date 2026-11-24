@@ -62,7 +62,7 @@ Gkanogiannis</h4>
                   
             <h4 data-toc-skip class="date">2026-11-24</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/gkanogiannis/jvecfor/blob/v1.2.0/vignettes/jvecfor_vignette.Rmd" class="external-link"><code>vignettes/jvecfor_vignette.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/gkanogiannis/jvecfor/blob/devel/vignettes/jvecfor_vignette.Rmd" class="external-link"><code>vignettes/jvecfor_vignette.Rmd</code></a></small>
       <div class="d-none name"><code>jvecfor_vignette.Rmd</code></div>
     </div>
 
@@ -524,7 +524,7 @@ graph constructors.</p>
 <span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/gorder.html" class="external-link">vcount</a></span><span class="op">(</span><span class="va">g_snn</span><span class="op">)</span>   <span class="co"># 300 — one vertex per cell</span></span>
 <span><span class="co">#&gt; [1] 300</span></span>
 <span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/gsize.html" class="external-link">ecount</a></span><span class="op">(</span><span class="va">g_snn</span><span class="op">)</span>   <span class="co"># weighted undirected edges</span></span>
-<span><span class="co">#&gt; [1] 34470</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 34471</span></span></code></pre></div>
 <p>The <code>snn.type</code> argument controls how edge weights are
 computed:</p>
 <table class="table">
@@ -565,7 +565,7 @@ computed:</p>
 <span><span class="co"># Edge weight ranges differ between types</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/E.html" class="external-link">E</a></span><span class="op">(</span><span class="va">g_rank</span><span class="op">)</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span></span>
 <span><span class="co">#&gt;      Min.   1st Qu.    Median      Mean   3rd Qu.      Max. </span></span>
-<span><span class="co">#&gt;  0.000001  6.500000  9.000000  8.705406 11.000000 14.500000</span></span>
+<span><span class="co">#&gt;  0.000001  6.500000  9.000000  8.707383 11.000000 14.500000</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/E.html" class="external-link">E</a></span><span class="op">(</span><span class="va">g_jaccard</span><span class="op">)</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span></span>
 <span><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
 <span><span class="co">#&gt; 0.03226 0.03226 0.06667 0.07545 0.10345 0.45455</span></span></code></pre></div>
@@ -598,8 +598,8 @@ single-cell analysis. Here we use the Louvain algorithm:</p>
 <span><span class="va">membership_vec</span> <span class="op">&lt;-</span> <span class="fu">igraph</span><span class="fu">::</span><span class="fu"><a href="https://r.igraph.org/reference/communities.html" class="external-link">membership</a></span><span class="op">(</span><span class="va">louvain</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">membership_vec</span><span class="op">)</span></span>
 <span><span class="co">#&gt; membership_vec</span></span>
-<span><span class="co">#&gt;  1  2  3  4 </span></span>
-<span><span class="co">#&gt; 36 98 70 96</span></span></code></pre></div>
+<span><span class="co">#&gt;   1   2   3   4 </span></span>
+<span><span class="co">#&gt;  37  96  66 101</span></span></code></pre></div>
 <p>Leiden clustering (when available via <em><a href="https://CRAN.R-project.org/package=igraph" class="external-link">igraph</a></em> ≥ 1.3)
 gives finer control over community resolution:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
